@@ -474,15 +474,48 @@
                                 <div class="col-3"><label class="form-label">a (mm)</label><input type="number"
                                         class="form-control" name="a" value="40"></div>
 
-                                <div class="col-12 mt-4"><strong class="text-info">Nội Lực Max</strong></div>
-                                <div class="col-3"><label class="form-label">N nén (kN)</label><input type="number"
-                                        class="form-control" name="n" value="1500"></div>
-                                <div class="col-3"><label class="form-label">Mx (kNm)</label><input type="number"
-                                        class="form-control" name="mx" value="150"></div>
-                                <div class="col-3"><label class="form-label">My (kNm)</label><input type="number"
-                                        class="form-control" name="my" value="80"></div>
-                                <div class="col-3"><label class="form-label">Cắt Q (kN)</label><input type="number"
-                                        class="form-control" name="q" value="120"></div>
+                                <div class="col-12 mt-4"><strong class="text-info"><i class="fas fa-bolt"></i> BẢNG TỔ HỢP NỘI LỰC THIẾT KẾ</strong></div>
+                                <div class="col-12">
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-sm table-bordered align-middle text-center" style="font-size: 0.85rem;">
+                                            <thead class="text-white-50">
+                                                <tr>
+                                                    <th width="50">TT</th>
+                                                    <th width="120">Đặc điểm</th>
+                                                    <th>N (kN)</th>
+                                                    <th>M (kNm)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td><input type="text" name="col_feature[]" class="form-control form-control-sm bg-transparent border-0 text-white text-center p-0" value="emax"></td>
+                                                    <td><input type="number" name="col_n[]" class="form-control form-control-sm bg-dark border-secondary text-white" value="1500"></td>
+                                                    <td><input type="number" name="col_m[]" class="form-control form-control-sm bg-dark border-secondary text-white" value="170"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>2</td>
+                                                    <td><input type="text" name="col_feature[]" class="form-control form-control-sm bg-transparent border-0 text-white text-center p-0" value="M, N lớn"></td>
+                                                    <td><input type="number" name="col_n[]" class="form-control form-control-sm bg-dark border-secondary text-white" value="1550"></td>
+                                                    <td><input type="number" name="col_m[]" class="form-control form-control-sm bg-dark border-secondary text-white" value="190"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>3</td>
+                                                    <td><input type="text" name="col_feature[]" class="form-control form-control-sm bg-transparent border-0 text-white text-center p-0" value="Nmin"></td>
+                                                    <td><input type="number" name="col_n[]" class="form-control form-control-sm bg-dark border-secondary text-white" value="700"></td>
+                                                    <td><input type="number" name="col_m[]" class="form-control form-control-sm bg-dark border-secondary text-white" value="140"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-8"></div>
+                                        <div class="col-4">
+                                            <label class="form-label small text-info">Cắt Q_max (kN)</label>
+                                            <input type="number" class="form-control form-control-sm bg-dark text-warning fw-bold border-info" name="q" value="120">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -562,7 +595,7 @@
                             </div>
 
                             <button type="button" class="btn btn-success w-100 mt-2 fw-bold"
-                                onclick="ReportEngine.addFound(Object.fromEntries(new FormData(document.getElementById('f-fnd'))))">
+                                onclick="const fd = new FormData(document.getElementById('f-fnd')); let d = Object.fromEntries(fd); d['s_name[]']=fd.getAll('s_name[]'); d['s_h[]']=fd.getAll('s_h[]'); d['s_gamma[]']=fd.getAll('s_gamma[]'); d['s_e[]']=fd.getAll('s_e[]'); ReportEngine.addFound(d)">
                                 + Thêm Móng này vào Thuyết minh
                             </button>
                         </form>
@@ -917,7 +950,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Φ6</td>
+                                    <td>Ø6</td>
                                     <td>28.3</td>
                                     <td>56.5</td>
                                     <td>84.8</td>
@@ -929,7 +962,7 @@
                                     <td>254.5</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ8</td>
+                                    <td>Ø8</td>
                                     <td>50.3</td>
                                     <td>100.5</td>
                                     <td>150.8</td>
@@ -941,7 +974,7 @@
                                     <td>452.4</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ10</td>
+                                    <td>Ø10</td>
                                     <td>78.5</td>
                                     <td>157.1</td>
                                     <td>235.6</td>
@@ -953,7 +986,7 @@
                                     <td>706.9</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ12</td>
+                                    <td>Ø12</td>
                                     <td>113.1</td>
                                     <td>226.2</td>
                                     <td>339.3</td>
@@ -965,7 +998,7 @@
                                     <td>1017.9</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ14</td>
+                                    <td>Ø14</td>
                                     <td>153.9</td>
                                     <td>307.9</td>
                                     <td>461.8</td>
@@ -977,7 +1010,7 @@
                                     <td>1385.4</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ16</td>
+                                    <td>Ø16</td>
                                     <td>201.1</td>
                                     <td>402.1</td>
                                     <td>603.2</td>
@@ -989,7 +1022,7 @@
                                     <td>1809.6</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ18</td>
+                                    <td>Ø18</td>
                                     <td>254.5</td>
                                     <td>508.9</td>
                                     <td>763.4</td>
@@ -1001,7 +1034,7 @@
                                     <td>2290.2</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ20</td>
+                                    <td>Ø20</td>
                                     <td>314.2</td>
                                     <td>628.3</td>
                                     <td>942.5</td>
@@ -1013,7 +1046,7 @@
                                     <td>2827.4</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ22</td>
+                                    <td>Ø22</td>
                                     <td>380.1</td>
                                     <td>760.3</td>
                                     <td>1140.4</td>
@@ -1025,7 +1058,7 @@
                                     <td>3421.2</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ25</td>
+                                    <td>Ø25</td>
                                     <td>490.9</td>
                                     <td>981.7</td>
                                     <td>1472.6</td>
@@ -1037,7 +1070,7 @@
                                     <td>4417.9</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ28</td>
+                                    <td>Ø28</td>
                                     <td>615.8</td>
                                     <td>1231.5</td>
                                     <td>1847.3</td>
@@ -1049,7 +1082,7 @@
                                     <td>5541.8</td>
                                 </tr>
                                 <tr>
-                                    <td>Φ32</td>
+                                    <td>Ø32</td>
                                     <td>804.2</td>
                                     <td>1608.5</td>
                                     <td>2412.7</td>
@@ -1431,7 +1464,7 @@
                         let n_min = Math.ceil(As_req / a_bar);
                         for(let n = n_min; n <= n_min + 3; n++) {
                             if (n < (is_col ? 4 : 2)) continue;
-                            addOpt(`${n}Φ${d}`, n, d, n * a_bar, "1 lớp");
+                            addOpt(`${n}Ø${d}`, n, d, n * a_bar, "1 lớp");
                         }
                     }
 
@@ -1442,7 +1475,7 @@
                         let patterns = is_col ? [[4, 2], [4, 4], [2, 2]] : [[2, 1], [2, 2], [3, 2], [2, 3], [4, 2]];
                         for (let [n1, n2] of patterns) {
                             let AsP = n1 * a1 + n2 * a2;
-                            addOpt(`${n1}Φ${d1} + ${n2}Φ${d2}`, n1 + n2, Math.max(d1, d2), AsP, "Liên hợp");
+                            addOpt(`${n1}Ø${d1} + ${n2}Ø${d2}`, n1 + n2, Math.max(d1, d2), AsP, "Liên hợp");
                         }
                     }
 
@@ -1452,7 +1485,7 @@
                             let a_bar = Math.PI * d * d / 4;
                             let n_total = Math.ceil(As_req_2layer / a_bar);
                             if (n_total < 4) n_total = 4;
-                            addOpt(`${n_total}Φ${d}`, n_total, d, n_total * a_bar, "2 lớp");
+                            addOpt(`${n_total}Ø${d}`, n_total, d, n_total * a_bar, "2 lớp");
                         }
                     }
 
@@ -1509,7 +1542,7 @@
                     }
 
                     if (!best) return { ok: false, trace: "Lỗi tính đai!", txt: "---" };
-                    let txt = `Φ${best.d} a${best.s1}/a${best.s2}`;
+                    let txt = `Ø${best.d} a${best.s1}/a${best.s2}`;
                     return { ok: Q <= Q_comp_check && Q <= Q_b_max, txt, Qmax: Q_comp_check, Q_b_max, Qb_min, cq, q1, Rsw, best, Mb, qsw1, qsw2, qsw3, qsw_calc, qsw_min, qsw_final, cond_calc, sMax, sCt_goi, sCt_nhip, g_sw, gs, g, p, g_wall, g_s_max, p_s_max, aq: safe_aq };
                 },
 
@@ -1712,43 +1745,85 @@
 
                 column(d) {
                     let m = this.getMat(d.conc, d.steel);
-                    let h0 = d.h - d.a, b = d.b, a = d.a;
+                    let h0 = d.h - d.a, b = d.b, a = d.a, L0 = (d.l0 || 3.3) * 1000;
+                    
+                    let combos = [];
+                    let maxAs = 0, worstIdx = 0;
 
-                    let M_eq = Math.sqrt(d.mx ** 2 + d.my ** 2);
-                    let N = d.n * 1000;
-                    let e0 = (M_eq * 1e6) / (N + 0.1);
-                    let ea = Math.max(d.l0 * 1000 / 600, d.h / 30, 10);
-                    e0 = Math.max(e0, ea);
+                    const n_list = d['col_n[]'] || d.col_n || [d.n, d.n, d.n];
+                    const m_list = d['col_m[]'] || d.col_m || [d.mx, d.mx, d.mx];
+                    const feature_list = d['col_feature[]'] || d.col_feature || ["emax", "M, N lớn", "Nmin"];
 
-                    let trace = `<b>[ BUCKLING UỐN DỌC CỘT ]</b> Lệch tâm e0 = ${e0.toFixed(1)} mm\n`;
-                    let I = (b * d.h ** 3) / 12;
-                    let D = 0.15 * m.Eb * I;
-                    let Ncr = (Math.PI ** 2 * D) / (d.l0 ** 2 * 1e6);
-                    let eta = 1 / (1 - N / Ncr);
-                    if (eta < 1) eta = 1; else if (eta > 2) eta = 2;
+                    for (let i = 0; i < 3; i++) {
+                        let N_val = parseFloat(n_list[i]) || 0;
+                        let Mx_val = parseFloat(m_list[i]) || 0;
+                        let My_val = 0; 
+                        let N = Math.abs(N_val) * 1000;
 
-                    let M_des = N * e0 * eta;
-                    let e = M_des / N + d.h / 2 - a;
-                    trace += `- <span class="latex">N_cr = ${(Ncr / 1000).toFixed(1)} kN => η = ${eta.toFixed(3)}</span>\n`;
+                        // 1. Tham số hình học & vật liệu
+                        let Ib_x = (b * Math.pow(d.h, 3)) / 12; 
+                        let Ib_y = (d.h * Math.pow(b, 3)) / 12; 
+                        let Eb = m.Eb, Es = m.Es;
+                        let phi_L = 1.0, kb = 0.15 / phi_L, ks = 0.7;
+                        let As_guess = 0.01 * b * d.h;
+                        let Is_x = As_guess * Math.pow(d.h / 2 - a, 2);
+                        let Is_y = As_guess * Math.pow(b / 2 - a, 2);
 
-                    let As = 0, x = N / (m.Rb * b);
-                    let M_bt = m.Rb * b * x * (h0 - 0.5 * x);
-                    if (x <= h0) { As = (M_des + N * (d.h / 2 - a) - M_bt) / (m.Rsc * (h0 - a)); }
-                    else { As = (N - m.Rb * b * d.h) / (m.Rsc); }
-                    As = Math.max(As * 2, 0.004 * b * d.h);
+                        // 2. Tính toán uốn dọc
+                        let Dx = kb * Eb * Ib_x + ks * Es * Is_x;
+                        let Ncr_x = (Math.PI ** 2 * Dx) / (L0 ** 2);
+                        let lambda_x = L0 / (d.h * 0.288);
+                        let eta_x = (lambda_x > 14) ? 1 / (1 - N / Ncr_x) : 1.0;
+                        if (eta_x < 1) eta_x = 1; else if (eta_x > 2.5) eta_x = 2.5;
 
-                    trace += `- <span class="latex">Tổng As_req cột = ${As.toFixed(1)} mm²</span>\n`;
-                    let props = this.proposeRebar(As, b, a, As * 1.05, a + 20, true);
-                    let prop = props[0];
+                        let Dy = kb * Eb * Ib_y + ks * Es * Is_y;
+                        let Ncr_y = (Math.PI ** 2 * Dy) / (L0 ** 2);
+                        let lambda_y = L0 / (b * 0.288);
+                        let eta_y = (lambda_y > 14) ? 1 / (1 - N / Ncr_y) : 1.0;
+                        if (eta_y < 1) eta_y = 1; else if (eta_y > 2.5) eta_y = 2.5;
 
-                    props.forEach((p, idx) => {
-                        trace += `- PA${idx + 1}: <span class="val">${p.txt} (As_prov: ${p.AsP.toFixed(1)})</span> - ${p.pass ? "OK" : p.msg}\n`;
+                        // 3. Độ lệch tâm
+                        let ea_x = Math.max(L0 / 600, d.h / 30, 10);
+                        let ea_y = Math.max(L0 / 600, b / 30, 10);
+                        let e1_x = (Math.abs(Mx_val) * 1e6) / (N + 0.1);
+                        let e1_y = (Math.abs(My_val) * 1e6) / (N + 0.1);
+                        
+                        let Mx_des = N * Math.max(e1_x, ea_x) * eta_x;
+                        let My_des = N * Math.max(e1_y, ea_y) * eta_y;
+
+                        // 4. Tính toán cốt thép theo Mô men tương đương
+                        let M_des_total = Math.sqrt(Mx_des**2 + My_des**2);
+                        let x = N / (m.Rb * b);
+                        let M_bt = m.Rb * b * x * (h0 - 0.5 * x);
+                        let As = 0;
+                        if (x <= h0) { As = (M_des_total + N * (d.h / 2 - a) - M_bt) / (m.Rsc * (h0 - a)); }
+                        else { As = (N - m.Rb * b * d.h) / (m.Rsc); }
+                        As = Math.max(As * 2, 0.004 * b * d.h);
+
+                        combos.push({
+                            feature: feature_list[i], N_kn: N_val, Mx: Mx_val, My: My_val, e1_x, ea_x, e0_x: Math.max(e1_x, ea_x),
+                            Mx_des, My_des, M_des_total, eta_x, eta_y, As_req: As,
+                            Ncr_x, Ncr_y, Ib_x, Ib_y, lambda_x, lambda_y, Dx, Dy, L0
+                        });
+                        if (As > maxAs) { maxAs = As; worstIdx = i; }
+                    }
+
+                    let res = combos[worstIdx];
+                    let trace = `<b>[ KIỂM TRA 3 TỔ HỢP - CASE NGUY HIỂM: ${res.feature} ]</b>\n`;
+                    combos.forEach(c => {
+                        trace += `- ${c.feature}: N=${c.N_kn}kN, M=${c.Mx}kNm => As=${c.As_req.toFixed(1)}mm²\n`;
                     });
-                    trace += `\n`;
 
+                    let props = this.proposeRebar(res.As_req, b, d.h, res.As_req * 1.05, 12, true);
+                    let prop = props[0];
                     let shear = this.calcShear(d.q, b, d.h, h0, m.Rb, m.Rbt, d.stirrup_steel, 0, 0, 0, 1000, d.l0 * 1000);
 
-                    return { trace: trace + shear.trace, As_req: As, prop, props, shear, global: prop.pass && shear.ok };
+                    return { 
+                        trace: trace + shear.trace, 
+                        As_req: res.As_req, prop, props, shear, 
+                        global: prop.pass && shear.ok,
+                        combos, worstIdx, ...res
+                    };
                 },
 
                 slabBatch(d) {
@@ -1841,7 +1916,7 @@
                             bars.forEach(b => {
                                 spacings.forEach(s => {
                                     let as = (1000 / s) * b.p;
-                                    if (as >= req * 0.9) all.push({ txt: `Φ${b.d} a${s}`, as: as });
+                                    if (as >= req * 0.9) all.push({ txt: `Ø${b.d} a${s}`, as: as });
                                 });
                             });
                             all.sort((a, b) => a.as - b.as);
@@ -1850,7 +1925,7 @@
                                 if (!map.has(x.txt)) { unique.push(x); map.add(x.txt); } 
                                 if (unique.length >= 10) break; 
                             }
-                            if (unique.length === 0) unique.push({ txt: `Φ8 a200`, as: 251.5 });
+                            if (unique.length === 0) unique.push({ txt: `Ø8 a200`, as: 251.5 });
                             mObj.propList = unique;
                             let best = unique.find(x => x.as >= req) || unique[0];
                             mObj.propTxt = best.txt; mObj.propAs = best.as;
@@ -2382,9 +2457,9 @@
                     if (!container) return;
 
                     const parseBars = (txt) => {
-                        if (!txt || txt === '0Φ0') return [];
+                        if (!txt || txt === '0Ø0') return [];
                         const res = [];
-                        const regex = /(\d+)Φ(\d+)/g;
+                        const regex = /(\d+)Ø(\d+)/g;
                         let match;
                         while ((match = regex.exec(txt)) !== null) {
                             res.push({ n: parseInt(match[1]), d: parseInt(match[2]) });
@@ -2428,7 +2503,7 @@
 
                         let labelY = isTop ? -60 : h + 80;
                         let lineY = isTop ? a : h - a;
-                        let txt = bars.map(g => `${g.n}Φ${g.d}`).join('+');
+                        let txt = bars.map(g => `${g.n}Ø${g.d}`).join('+');
 
                         s += `<line x1="${(offset + b / 2).toFixed(1)}" y1="${lineY}" x2="${(offset + b / 2).toFixed(1)}" y2="${(labelY + (isTop ? 15 : -15)).toFixed(1)}" stroke="#fd7e14" stroke-width="1" stroke-dasharray="3,2" />`;
                         s += `<text x="${(offset + b / 2).toFixed(1)}" y="${labelY}" font-size="28" fill="#ffc107" font-weight="bold" text-anchor="middle">${txt}</text>`;
@@ -2815,7 +2890,7 @@
                     const n2 = parseInt(parent.querySelector('.mat-manual-n2').value) || 0;
                     const d2 = parseInt(parent.querySelector('.mat-manual-d2').value) || 0;
 
-                    const txt = `${n1}Φ${d1}${n2 > 0 ? ' + ' + n2 + 'Φ' + d2 : ''}`;
+                    const txt = `${n1}Ø${d1}${n2 > 0 ? ' + ' + n2 + 'Ø' + d2 : ''}`;
 
                     if (type === 'pos') {
                         Visualizer.drawBeamSection('svg-beam-pos', b, h, a, "", txt, "", bf, hf);
@@ -2835,7 +2910,7 @@
                             if (!r) return "";
                             const n1 = r.querySelector('.mat-manual-n1').value, d1 = r.querySelector('.mat-manual-d1').value;
                             const n2 = r.querySelector('.mat-manual-n2').value, d2 = r.querySelector('.mat-manual-d2').value;
-                            return `${n1}Φ${d1}${n2 > 0 ? ' + ' + n2 + 'Φ' + d2 : ''}`;
+                            return `${n1}Ø${d1}${n2 > 0 ? ' + ' + n2 + 'Ø' + d2 : ''}`;
                         }
 
                         const posTxt = getT(rowPos), leftTxt = getT(rowLeft);
@@ -2844,7 +2919,7 @@
                     }
                 },
                 selectBeamProp(type, txt) {
-                    const match = txt.match(/(\d+)Φ(\d+)/);
+                    const match = txt.match(/(\d+)Ø(\d+)/);
                     if (!match) return;
                     const n = match[1], d = match[2];
                     
@@ -2977,11 +3052,11 @@
                     window.lastCalcData = data;
 
                     const getManualUI = (req, isSlab = false) => {
-                        const dOptsSlab = [6, 8, 10, 12].map(v => `<option value="${v}">Φ${v}</option>`).join('');
+                        const dOptsSlab = [6, 8, 10, 12].map(v => `<option value="${v}">Ø${v}</option>`).join('');
                         const aOptsSlab = [100, 150, 200].map(v => `<option value="${v}">a${v}</option>`).join('');
                         const nOpts1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<option value="${v}" ${v == 2 ? 'selected' : ''}>${v}</option>`).join('');
                         const nOpts2 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<option value="${v}">${v}</option>`).join('');
-                        const dOpts = [14, 16, 18, 20, 22, 25, 28, 32].map(v => `<option value="${v}">Φ${v}</option>`).join('');
+                        const dOpts = [14, 16, 18, 20, 22, 25, 28, 32].map(v => `<option value="${v}">Ø${v}</option>`).join('');
 
                         if (isSlab) return `
                         <div class="col-md-4 border-start border-secondary ps-3">
@@ -3146,8 +3221,8 @@
                                 const b = data.b || 200, h = data.h || 400, a = data.a || 25;
                                 const getT = (id) => {
                                     const r = document.getElementById(id)?.closest('.row');
-                                    if (!r) return "2Φ14"; // Default
-                                    return `${r.querySelector('.mat-manual-n1').value}Φ${r.querySelector('.mat-manual-d1').value}`;
+                                    if (!r) return "2Ø14"; // Default
+                                    return `${r.querySelector('.mat-manual-n1').value}Ø${r.querySelector('.mat-manual-d1').value}`;
                                 };
                                 const bPos = getT('svg-beam-pos');
                                 const bLeft = getT('svg-beam-left');
@@ -3162,6 +3237,25 @@
                             res = Engine.column(data);
                             html = `<div class="alert ${res.global ? 'alert-success' : 'alert-danger'} mb-2"><b>${res.global ? 'ĐẠT' : 'KHÔNG ĐẠT'}</b></div>
                             <div class="card bg-dark border-secondary p-3 mb-3">
+                                <h6 class="text-primary border-bottom border-secondary pb-2 mb-3"><i class="fas fa-table"></i> BẢNG SO SÁNH 3 TỔ HỢP NỘI LỰC</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-sm table-bordered text-center small mb-0">
+                                        <thead class="text-white-50"><tr><th>TT</th><th>Đặc điểm</th><th>N (kN)</th><th>M (kNm)</th><th class="text-info">As_req</th></tr></thead>
+                                        <tbody>
+                                            ${res.combos.map((c, i) => `
+                                                <tr class="${res.worstIdx === i ? 'bg-primary bg-opacity-25 fw-bold' : ''}">
+                                                    <td>${i+1}</td>
+                                                    <td class="text-start ps-2">${c.feature}</td>
+                                                    <td>${c.N_kn}</td>
+                                                    <td>${c.Mx}</td>
+                                                    <td class="text-info">${c.As_req.toFixed(1)}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="card bg-dark border-secondary p-3 mb-3">
                                 <h6 class="text-info border-bottom border-secondary pb-2 mb-3"><i class="fas fa-th"></i> CÁC PHƯƠNG ÁN THÉP CỘT</h6>
                                 <div class="row">
                                     <div class="col-md-7">
@@ -3169,13 +3263,13 @@
                                     </div>
                                     ${getManualUI(res.As_req)}
                                 </div>
-                                <div class="mt-2" style="font-size:0.85rem; color:#0dcaf0">As_req: ${res.As_req.toFixed(1)} mm²</div>
+                                <div class="mt-2" style="font-size:0.85rem; color:#0dcaf0">As_req: ${res.As_req.toFixed(1)} mm² (Case: ${res.feature})</div>
                             </div>
                             <div class="mb-2"><b>Thép Đai (Cắt): </b> <span class="val">${res.shear.txt}</span></div>`;
                             window.colAsChon = res.prop.AsP; window.colTextChon = res.prop.txt;
                             let btnCol = document.getElementById('btn-report-col');
                             if (!btnCol) { btnCol = document.createElement('div'); btnCol.id = 'btn-report-col'; document.getElementById('f-col').appendChild(btnCol); }
-                            btnCol.innerHTML = '<button type="button" class="btn btn-success btn-sm w-100 mt-3 d-print-none" onclick="ReportEngine.addCol(window.lastCalcData, window.colAsChon, window.colTextChon)"><i class="fas fa-plus"></i> Thêm Cột này vào Thuyết minh</button>';
+                            btnCol.innerHTML = '<button type="button" class="btn btn-success btn-sm w-100 mt-3 d-print-none" onclick="const fd = new FormData(document.getElementById(\'f-col\')); let d = Object.fromEntries(fd); d[\'col_n[]\']=fd.getAll(\'col_n[]\'); d[\'col_m[]\']=fd.getAll(\'col_m[]\'); d[\'col_feature[]\']=fd.getAll(\'col_feature[]\'); ReportEngine.addCol(d)"><i class="fas fa-plus"></i> Thêm Cột này vào Thuyết minh</button>';
                         } else if (data.type === 'slabBatch') {
                             // TỰ ĐỘNG CHỌN HỆ KẾT CẤU DỰA VÀO TỈ LỆ Ô SÀN (Lx/Ly)
                             const list = document.getElementById('slab-list');
@@ -3565,13 +3659,13 @@
                                                 <div class="d-flex align-items-center justify-content-center bg-black bg-opacity-50 rounded border border-secondary border-opacity-25 p-1 px-3" style="height:38px;">
                                                     <div class="d-flex align-items-center gap-1">
                                                         <input type="number" class="bg-transparent border-0 text-info text-center p-0 fw-bold" style="width:25px; font-size:0.8rem; color: #0dcaf0 !important;" placeholder="n" oninput="Batch.updateManual(${i}, 'n1', this.value)">
-                                                        <span class="text-white-50" style="font-size:0.65rem;">Φ</span>
+                                                        <span class="text-white-50" style="font-size:0.65rem;">Ø</span>
                                                         <input type="number" class="bg-transparent border-0 text-info text-center p-0 fw-bold" style="width:28px; font-size:0.8rem; color: #0dcaf0 !important;" placeholder="d" oninput="Batch.updateManual(${i}, 'd1', this.value)">
                                                     </div>
                                                     <span class="text-white-50 mx-2 opacity-50" style="font-size:0.8rem;">+</span>
                                                     <div class="d-flex align-items-center gap-1">
                                                         <input type="number" class="bg-transparent border-0 text-warning text-center p-0 fw-bold" style="width:25px; font-size:0.8rem; color: #ffc107 !important;" placeholder="n" oninput="Batch.updateManual(${i}, 'n2', this.value)">
-                                                        <span class="text-white-50" style="font-size:0.65rem;">Φ</span>
+                                                        <span class="text-white-50" style="font-size:0.65rem;">Ø</span>
                                                         <input type="number" class="bg-transparent border-0 text-warning text-center p-0 fw-bold" style="width:28px; font-size:0.8rem; color: #ffc107 !important;" placeholder="d" oninput="Batch.updateManual(${i}, 'd2', this.value)">
                                                     </div>
                                                 </div>
@@ -3606,7 +3700,7 @@
                 },
                 parseSteel(str) {
                     if (!str) return 0;
-                    let m = str.match(/(\d+)\s*[dDΦ\-]\s*(\d+)/);
+                    let m = str.match(/(\d+)\s*[dDØ\-]\s*(\d+)/);
                     if (!m) return 0;
                     return parseInt(m[1]) * Math.PI * Math.pow(parseInt(m[2]), 2) / 4;
                 },
@@ -3926,7 +4020,7 @@
                             </thead>
                             <tbody>
                                 ${this.data.map(r => {
-                                    let mStr = (r.m && (r.m.n1 > 0 || r.m.n2 > 0)) ? `${r.m.n1}Φ${r.m.d1}${r.m.n2 > 0 ? '+' + r.m.n2 + 'Φ' + r.m.d2 : ''}` : '(Auto)';
+                                    let mStr = (r.m && (r.m.n1 > 0 || r.m.n2 > 0)) ? `${r.m.n1}Ø${r.m.d1}${r.m.n2 > 0 ? '+' + r.m.n2 + 'Ø' + r.m.d2 : ''}` : '(Auto)';
                                     return `
                                     <tr>
                                         <td style="font-weight:bold;">${r.Story}_${r.Name}</td>
@@ -4019,7 +4113,7 @@
                         if (!r) return { txt: 'Chưa chọn', area: 0 };
                         const n1 = parseInt(r.querySelector('.mat-manual-n1').value) || 0, d1 = parseInt(r.querySelector('.mat-manual-d1').value) || 0;
                         const n2 = parseInt(r.querySelector('.mat-manual-n2').value) || 0, d2 = parseInt(r.querySelector('.mat-manual-d2').value) || 0;
-                        return { txt: `${n1}Φ${d1}${n2 > 0 ? '+' + n2 + 'Φ' + d2 : ''}`, area: (n1 * Math.PI * d1 * d1 / 4) + (n2 * Math.PI * d2 * d2 / 4) };
+                        return { txt: `${n1}Ø${d1}${n2 > 0 ? '+' + n2 + 'Ø' + d2 : ''}`, area: (n1 * Math.PI * d1 * d1 / 4) + (n2 * Math.PI * d2 * d2 / 4) };
                     }
                     const tPos = getT('svg-beam-pos');
                     const tLeft = getT('svg-beam-left');
@@ -4295,7 +4389,7 @@
 
                     <div style="margin-left:25px; margin-bottom:15px;">
                         <b>d. Chọn và bố trí cốt đai:</b><br>
-                        - Chọn cốt đai 2 nhánh: <b>Φ${res.shear.best.d}</b> (<i>A<sub>sw</sub></i> = ${res.shear.best.Asw.toFixed(1)} mm<sup>2</sup>).<br>
+                        - Chọn cốt đai 2 nhánh: <b>Ø${res.shear.best.d}</b> (<i>A<sub>sw</sub></i> = ${res.shear.best.Asw.toFixed(1)} mm<sup>2</sup>).<br>
                         
                         <div style="margin-top:10px;"><b>1. Khoảng cách tính toán <i>s<sub>tt</sub></i>:</b></div>
                         <div style="display:flex; align-items:center; margin:10px 0;">
@@ -4351,39 +4445,198 @@
                     let Rb = m.Rb.toFixed(1), Rsc = m.Rsc, b = data.b, h = data.h, a = data.a, h0 = h - a;
                     let res = Engine.column(data);
 
-                    let M_eq = Math.sqrt(Math.pow(data.mx, 2) + Math.pow(data.my, 2)).toFixed(2);
-                    let N = data.n, N_kn = data.n * 1000;
-                    let e0_t = ((M_eq * 1e6) / (N_kn + 0.1)).toFixed(1);
-                    let ea = Math.max(data.l0 * 1000 / 600, h / 30, 10).toFixed(1);
-                    let e0 = Math.max(e0_t, ea).toFixed(1);
+                    if (!asChon) asChon = res.prop.AsP;
+                    if (!textChon) textChon = res.prop.txt;
 
-                    let I = (b * Math.pow(h, 3)) / 12;
-                    let D = 0.15 * m.Eb * I;
-                    let Ncr = ((Math.PI * Math.PI * D) / (Math.pow(data.l0 * 1000, 2))).toFixed(0);
-                    let eta = (1 / (1 - N_kn / Ncr)).toFixed(3);
+                    let N_kn = res.N_kn, M_eq = (res.M_des_total / 1e6).toFixed(2);
+                    let L0 = res.L0;
                     let Qmax = 0.3 * m.Rb * b * h0 / 1000;
 
                     let html = `
                 <div style="font-family:'Times New Roman', serif; font-size:13pt; line-height:1.6; color:#000; margin-bottom: 25px; page-break-inside: avoid;">
                     <div style="font-weight:bold; text-transform:uppercase; font-size:14pt; margin-bottom:10px; border-bottom: 1pt solid #000; padding-bottom: 5px;">B. TÍNH TOÁN CỐT THÉP CỘT LỆCH TÂM</div>
                     
-                    <div style="margin-bottom:10px;"><b>1. Nội lực và thông số:</b><br>
-                    - Cột ${b}&times;${h} mm, <i>L<sub>0</sub></i> = ${data.l0} m. Bê tông ${data.conc} (<i>R<sub>b</sub></i> = ${Rb} MPa). Thép dọc ${data.steel} (<i>R<sub>sc</sub></i> = ${Rsc} MPa).<br>
-                    - <i>N</i> = ${N} kN, <i>M<sub>x</sub></i> = ${data.mx} kNm, <i>M<sub>y</sub></i> = ${data.my} kNm &rarr; <i>M<sub>tđ</sub></i> = ${M_eq} kNm. Lực cắt <i>Q</i> = ${data.q} kN.</div>
-                    
-                    <div style="margin-bottom:10px;"><b>2. Xét uốn dọc & Độ lệch tâm:</b></div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Độ lệch tâm tĩnh học: <i>e<sub>1</sub></i> = <i>M</i> / <i>N</i> = (${M_eq} &times; 10<sup>6</sup>) / (${N} &times; 10<sup>3</sup>) = ${e0_t} mm. Lệch tâm ngẫu nhiên <i>e<sub>a</sub></i> = max(L<sub>0</sub>/600, h/30, 10) = ${ea} mm.</div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Độ lệch tâm tính toán: <i>e<sub>0</sub></i> = max(e<sub>1</sub>, e<sub>a</sub>) = ${e0} mm.</div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Lực tới hạn Euler: <i>N<sub>cr</sub></i> = (<i>&pi;</i><sup>2</sup> &times; <i>D</i>) / <i>L<sub>0</sub></i><sup>2</sup> = ${(Ncr / 1000).toFixed(1)} kN.</div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Hệ số uốn dọc: <i>&eta;</i> = 1 / [1 - (<i>N</i> / <i>N<sub>cr</sub></i>)] = 1 / [1 - (${N} / ${(Ncr / 1000).toFixed(1)})] = ${eta}. Mô men tính toán <i>M<sub>des</sub></i> = <i>N</i>&times;<i>e<sub>0</sub></i>&times;<i>&eta;</i> = ${(N * e0 * eta / 1000).toFixed(1)} kNm.</div>
+                    <div style="margin-bottom:12px;"><b>1. Nội lực và thông số thiết kế:</b></div>
+                    <div style="margin-left:15px; margin-bottom:15px;">
+                        - Cột ${b}&times;${h} mm, <i>L<sub>0</sub></i> = ${data.l0} m. Bê tông ${data.conc} (<i>R<sub>b</sub></i> = ${Rb} MPa). Thép dọc ${data.steel} (<i>R<sub>sc</sub></i> = ${Rsc} MPa).<br>
+                        - Kết quả tính toán cho trường hợp nguy hiểm nhất: <b>${res.feature}</b> (<i>N</i> = ${res.N_kn} kN, <i>M<sub>tđ</sub></i> = ${M_eq} kNm).<br>
+                    </div>
 
-                    <div style="margin-bottom:10px;"><b>3. Tính toán Thép dọc (Phân bố đối xứng chu vi):</b></div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Tổng diện tích thép yêu cầu: <b><i>A<sub>s,yc</sub></i> = ${res.As_req.toFixed(1)} mm<sup>2</sup></b> (Đã kiểm tra hàm lượng &mu;<sub>min</sub> = 0.4%).</div>
-                    <div style="margin-left:25px; margin-bottom:15px; font-weight:bold;">&rArr; Chọn bố trí: ${textChon} (<i>A<sub>s,chọn</sub></i> = ${asChon.toFixed(1)} mm<sup>2</sup> > <i>A<sub>s,yc</sub></i>).</div>
+                    <div style="margin-bottom:12px;"><b>a) Số liệu tính toán chi tiết:</b></div>
+                    <div style="margin-left:15px; margin-bottom:15px; font-family:'Times New Roman', serif;">
+                        <div style="margin-bottom:8px;">- Chiều dài tính toán cột: <br>
+                            &nbsp;&nbsp;&nbsp; <i>L<sub>0</sub></i> = <i>&psi;L</i> = <b>${res.L0 / 1000} (m) = ${res.L0} (mm)</b>.
+                        </div>
 
-                    <div style="margin-bottom:10px;"><b>4. Kiểm tra Lực cắt cốt đai:</b></div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Bê tông bụng cột: <i>Q<sub>max</sub></i> = 0.3 &times; <i>R<sub>b</sub></i> &times; <i>b</i> &times; <i>h<sub>0</sub></i> = ${(Qmax).toFixed(1)} kN > Q = ${data.q} kN (Đạt).</div>
-                    <div style="margin-left:25px; margin-bottom:15px; font-weight:bold;">&rArr; Bố trí thép đai cột: ${res.shear.txt}.</div>
+                        <div style="margin-bottom:8px;">- Giả thiết <i>a</i> = <i>a'</i> = ${a} (mm): <br>
+                            &nbsp;&nbsp;&nbsp; &rArr; <i>h<sub>0</sub></i> = <i>h</i> - <i>a</i> = ${h} - ${a} = <b>${h - a} (mm)</b>; <i>z<sub>a</sub></i> = <i>h<sub>0</sub></i> - <i>a'</i> = ${h - a} - ${a} = <b>${h - 2 * a} (mm)</b>.<br>
+                            <div style="display:inline-flex; align-items:center; margin-top:5px;">
+                                &nbsp;&nbsp;&nbsp; <i>&delta;</i> = 
+                                <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>a'</i></span>
+                                    <span><i>h<sub>0</sub></i></span>
+                                </span> = 
+                                <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${a}</span>
+                                    <span>${h - a}</span>
+                                </span> = <b>${(a / (h - a)).toFixed(3)}</b>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:8px; display:inline-flex; align-items:center;">
+                            - Độ mảnh <i>&lambda;</i> = 
+                            <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
+                                <span><i>h</i></span>
+                            </span> = 
+                            <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.L0}</span>
+                                <span>${h}</span>
+                            </span> = <b>${(res.L0 / h).toFixed(1)} > 4</b> &nbsp; nên cần phải tính toán ảnh hưởng của uốn dọc.
+                        </div>
+
+                        <div style="margin-bottom:15px;">
+                            - Độ lệch tâm ngẫu nhiên: <br>
+                            <div style="display:inline-flex; align-items:center; margin-left:15px; margin-top:5px;">
+                                <i>e<sub>a</sub></i> = max( 
+                                <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>h</i></span>
+                                    <span>30</span>
+                                </span> ; 
+                                <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L</i></span>
+                                    <span>600</span>
+                                </span> ; 10 mm ) = max( 
+                                <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${h}</span>
+                                    <span>30</span>
+                                </span> ; 
+                                <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${(res.L0 / 0.8).toFixed(0)}</span>
+                                    <span>600</span>
+                                </span> ; 10 ) = <b>${res.ea_x.toFixed(1)} (mm)</b>.
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:8px;">- Xác định hàm lượng cốt thép tối thiểu theo độ mảnh <i>&lambda;</i> theo 2 phương: <br>
+                            <div style="margin-left:25px; margin-top:10px;">
+                                <div style="display:inline-flex; align-items:center; margin-bottom:10px;">
+                                    <i>&lambda;<sub>h</sub></i> = 
+                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                        <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
+                                        <span><i>i<sub>h</sub></i></span>
+                                    </span> = 
+                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                        <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
+                                        <span>0,289<i>h</i></span>
+                                    </span> = 
+                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                        <span style="border-bottom:1px solid #000; padding:0 3px;">${res.L0}</span>
+                                        <span>0,289 &times; ${h}</span>
+                                    </span> = <b>${res.lambda_x.toFixed(1)}</b> &rarr; <i>&mu;<sub>min,h</sub></i> &approx; ${(res.lambda_x <= 28 ? 0.1 : (res.lambda_x <= 48 ? 0.15 : 0.2)).toFixed(2)}%
+                                </div><br>
+                                
+                                <div style="display:inline-flex; align-items:center;">
+                                    <i>&lambda;<sub>b</sub></i> = 
+                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                        <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
+                                        <span><i>i<sub>b</sub></i></span>
+                                    </span> = 
+                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                        <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
+                                        <span>0,289<i>b</i></span>
+                                    </span> = 
+                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                        <span style="border-bottom:1px solid #000; padding:0 3px;">${res.L0}</span>
+                                        <span>0,289 &times; ${b}</span>
+                                    </span> = <b>${res.lambda_y.toFixed(1)}</b> &rarr; <i>&mu;<sub>min,b</sub></i> &approx; ${(res.lambda_y <= 28 ? 0.1 : (res.lambda_y <= 48 ? 0.15 : 0.2)).toFixed(2)}%
+                                </div>
+                                <div style="margin-top:15px; font-weight:bold;">Chọn chung: &mu;<sub>min</sub> = ${Math.max(
+                                    (res.lambda_x <= 28 ? 0.1 : (res.lambda_x <= 48 ? 0.15 : 0.2)),
+                                    (res.lambda_y <= 28 ? 0.1 : (res.lambda_y <= 48 ? 0.15 : 0.2))
+                                ).toFixed(2)}%.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p style="text-align:center; font-weight:bold; margin-bottom:10px;">Bảng 1: Nội lực và độ lệch tâm của phần tử cột</p>
+                    <table border="1" style="width:100%; border-collapse: collapse; font-family:'Times New Roman', serif; font-size:11pt; margin-bottom:15px; text-align:center;">
+                         <tr style="background:#f2f2f2; font-weight:bold;">
+                            <th style="padding:5px;">Thứ tự</th>
+                            <th style="padding:5px;">Tên cặp</th>
+                            <th style="padding:5px;">Đặc điểm</th>
+                            <th style="padding:5px;"><i>M</i> (kNm)</th>
+                            <th style="padding:5px;"><i>N</i> (kN)</th>
+                            <th style="padding:5px;"><i>e<sub>1</sub></i> (mm)</th>
+                            <th style="padding:5px;"><i>e<sub>a</sub></i> (mm)</th>
+                            <th style="padding:5px;"><i>e<sub>0</sub></i> (mm)</th>
+                        </tr>
+                        ${res.combos.map((c, idx) => `
+                        <tr style="${res.worstIdx === idx ? 'background:#fff8e1; font-weight:bold;' : ''}">
+                            <td>${idx + 1}</td>
+                            <td>TH-${idx + 1}</td>
+                            <td style="text-align:left; padding-left:10px;">${c.feature}</td>
+                            <td>${c.Mx.toFixed(2)}</td>
+                            <td>${c.N_kn}</td>
+                            <td>${c.e1_x.toFixed(1)}</td>
+                            <td>${c.ea_x.toFixed(1)}</td>
+                            <td>${c.e0_x.toFixed(1)}</td>
+                        </tr>
+                        `).join('')}
+                    </table>
+                    <div style="font-size:10.5pt; margin-left:15px; margin-bottom:20px; font-style:italic;">
+                        <u>Lưu ý:</u> <i>e<sub>1</sub> = M/N; e<sub>0</sub> = max(e<sub>1</sub>; e<sub>a</sub>). Cặp in đậm màu vàng là trường hợp nguy hiểm nhất dùng để tính toán chi tiết dưới đây.</i>
+                    </div>
+
+                    <div style="margin-bottom:12px;"><b>b) Tính toán chi tiết hệ số uốn dọc <i>&eta;</i>:</b></div>
+                    <table border="1" style="width:100%; border-collapse: collapse; font-size:11.5pt; margin-bottom:15px; text-align:center;">
+                        <tr style="background:#f4f4f4; font-weight:bold;">
+                            <th style="padding:5px;">Thông số</th>
+                            <th style="padding:5px;">Bending about Y (cao h)</th>
+                            <th style="padding:5px;">Bending about X (cao b)</th>
+                        </tr>
+                        <tr>
+                            <td style="text-align:left; padding:5px;">Mô men quán tính <i>I<sub>b</sub></i></td>
+                            <td>${res.Ib_x.toExponential(2)} mm<sup>4</sup></td>
+                            <td>${res.Ib_y.toExponential(2)} mm<sup>4</sup></td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:left; padding:5px;">Lực Euler <i>N<sub>cr</sub></i></td>
+                            <td><b>${(res.Ncr_x / 1000).toFixed(1)} kN</b></td>
+                            <td><b>${(res.Ncr_y / 1000).toFixed(1)} kN</b></td>
+                        </tr>
+                        <tr style="background:#fffafa;">
+                            <td style="text-align:left; padding:5px; font-weight:bold;">Hệ số <i>&eta;</i></td>
+                            <td style="font-weight:bold; color:#cc0000;">${res.eta_x.toFixed(3)}</td>
+                            <td style="font-weight:bold; color:#cc0000;">${res.eta_y.toFixed(3)}</td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-left:15px; margin-bottom:15px; padding-left:10px; border-left: 2px solid #ddd;">
+                        - Mô men tính toán cuối cùng (Xét hiệu ứng bậc 2):<br>
+                        + <i>M<sub>des,x</sub></i> = ${res.Mx} &times; ${res.eta_x.toFixed(3)} = <b>${(res.Mx_des / 1e6).toFixed(2)} kNm</b>.<br>
+                        + <i>M<sub>des,y</sub></i> = ${res.My} &times; ${res.eta_y.toFixed(3)} = <b>${(res.My_des / 1e6).toFixed(2)} kNm</b>.<br>
+                        &rArr; Mô men tương đương: <b><i>M<sub>tđ</sub></i> = ${(res.M_des_total / 1e6).toFixed(2)} kNm</b>.
+                    </div>
+
+                    <div style="margin-bottom:12px;"><b>c) Xác định hàm lượng cốt thép tối thiểu theo độ mảnh <i>&lambda;</i> theo 2 phương:</b></div>
+                    <div style="margin-left:20px; margin-bottom:15px;">
+                        <div style="margin-bottom:8px;">
+                            <i>&lambda;<sub>h</sub></i> = <i>L<sub>0</sub></i> / (0.289 &times; <i>h</i>) = ${L0} / (0.289 &times; ${h}) = <b>${res.lambda_x.toFixed(1)}</b> &rarr; <i>&mu;<sub>min,h</sub></i> &approx; ${(res.lambda_x <= 28 ? 0.1 : (res.lambda_x <= 48 ? 0.15 : 0.2)).toFixed(2)}%
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <i>&lambda;<sub>b</sub></i> = <i>L<sub>0</sub></i> / (0.289 &times; <i>b</i>) = ${L0} / (0.289 &times; ${b}) = <b>${res.lambda_y.toFixed(1)}</b> &rarr; <i>&mu;<sub>min,b</sub></i> &approx; ${(res.lambda_y <= 28 ? 0.1 : (res.lambda_y <= 48 ? 0.15 : 0.2)).toFixed(2)}%
+                        </div>
+                        <div style="font-weight:bold; margin-top:10px;">
+                            &rArr; Chọn chung: <i>&mu;<sub>min</sub></i> = <b>0.2%</b>. <i>(Hàm lượng cốt thép tối thiểu khống chế cho cột theo quy định TCVN)</i>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:10px;"><b>d) Kết quả & Chọn thép:</b></div>
+                    <div style="margin-left:25px; margin-bottom:5px;">- Cốt thép dọc: <b>${textChon}</b> (<i>A<sub>s,chọn</sub></i> = ${asChon.toFixed(1)} mm<sup>2</sup>) &rarr; &mu; = <b>${(asChon / (b * h) * 100).toFixed(3)} %</b> (Đạt).</div>
+                    <div style="margin-left:25px; margin-bottom:15px;">
+                        - Cốt đai: <b>${res.shear.txt}</b>. Bố trí Ø${res.shear.best.d} a${res.shear.best.s1}/a${res.shear.best.s2}.
+                    </div>
                 </div><br style="clear: both;" />`;
                     document.getElementById('report-paper').insertAdjacentHTML('beforeend', html);
                     alert('Đã thêm Thuyết minh Cột (Định dạng đại số 100% an toàn)!');
