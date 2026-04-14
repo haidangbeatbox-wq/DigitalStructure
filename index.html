@@ -418,13 +418,32 @@
                                 <div class="col-4"><label class="form-label">Lớp bv a(mm)</label><input type="number"
                                         class="form-control" name="a" value="35"></div>
 
+                                <div class="col-4"><label class="form-label text-info">Nhịp dầm L (m)</label><input type="number"
+                                        class="form-control border-info" name="l_span" value="6.0" step="0.1"></div>
+                                <div class="col-4"><label class="form-label text-info">K/c thông thủy Sn (m)</label><input type="number"
+                                        class="form-control border-info" name="s_clear" value="3.5" step="0.1"></div>
+                                <div class="col-4"><label class="form-label text-info">Dày cánh hf' (mm)</label><input type="number"
+                                        class="form-control border-info" name="hf_f" value="100"></div>
+                                <div class="col-12"><small class="text-white-50"><i>* bf' sẽ được tự động tính theo 1/6 nhịp và 1/2 k/c thông thủy.</i></small></div>
+                                <input type="hidden" name="bf_f" value="220">
+
                                 <div class="col-12 mt-4"><strong class="text-primary">Nội Lực (Bao)</strong></div>
-                                <div class="col-4"><label class="form-label">M(+) (kNm)</label><input type="number"
+                                <div class="col-3"><label class="form-label">M(-) Trái (kNm)</label><input type="number"
+                                        class="form-control" name="m_left" value="250"></div>
+                                <div class="col-3"><label class="form-label">M(+) Nhịp (kNm)</label><input type="number"
                                         class="form-control" name="mpos" value="120"></div>
-                                <div class="col-4"><label class="form-label">M(-) (kNm)</label><input type="number"
-                                        class="form-control" name="mneg" value="250"></div>
-                                <div class="col-4"><label class="form-label">Cắt Q (kN)</label><input type="number"
-                                        class="form-control" name="q" value="95"></div>
+                                <div class="col-3"><label class="form-label">M(-) Phải (kNm)</label><input type="number"
+                                        class="form-control" name="m_right" value="250"></div>
+                                <div class="col-3"><label class="form-label">Lực cắt Qmax (kN)</label><input type="number"
+                                        class="form-control" name="v_shear" value="150"></div>
+                                <div class="col-3"><label class="form-label text-warning">Tải tường (kN/m)</label><input type="number"
+                                        class="form-control border-warning" name="g_wall" value="15.42"></div>
+                                <div class="col-3"><label class="form-label text-warning">q_sàn max (kN/m)</label><input type="number"
+                                        class="form-control border-warning" name="g_s_max" value="16.48"></div>
+                                <div class="col-3"><label class="form-label text-warning">p_sàn max (kN/m)</label><input type="number"
+                                        class="form-control border-warning" name="p_s_max" value="10.14"></div>
+                                <div class="col-3 mt-2"><label class="form-label text-warning">K/c truyền aq (mm)</label><input type="number"
+                                        class="form-control border-warning" name="aq" value="1950"></div>
                             </div>
                             <button type="button" class="btn btn-success btn-sm w-100 mt-2"
                                 onclick="ReportEngine.addBeam(window.lastCalcData)"><i class="fas fa-plus"></i> Thêm Dầm
@@ -1293,7 +1312,8 @@
         <script>
             window.lastCalcData = null;
             window.selBeamPos = -1;
-            window.selBeamNeg = -1;
+            window.selBeamLeft = -1;
+            window.selBeamRight = -1;
             window.colAsChon = 0;
             window.colTextChon = "";
 
@@ -1374,63 +1394,65 @@
                 },
 
                 // ĐỀ XUẤT 4 PHƯƠNG ÁN & MINH BẠCH SỐ LIỆU As_req, As_prov
-                proposeRebar(As_req1, b, a_1, As_req2, a_2, is_col = false) {
-                    if (As_req1 <= 0) return Array(8).fill({ txt: "Cấu tạo", AsP: 0, pass: true, msg: "Hợp lý" });
+                proposeRebar(As_req, b, a_1, As_req_2layer, a_2, is_col = false) {
+                    if (As_req <= 0) return Array(8).fill({ txt: "Cấu tạo", AsP: 0, pass: true, msg: "Hợp lý" });
 
                     const DIA_LIST = is_col ? [16, 18, 20, 22, 25, 28, 32] : [14, 16, 18, 20, 22, 25, 28, 32];
                     let all_opts = [];
 
+                    const addOpt = (txt, n, d_max, AsP, type) => {
+                        // 1. Kiểm tra diện tích (Chống việc chọn thiếu thép)
+                        if (AsP < As_req * 0.99) return; 
+
+                        // 2. Kiểm tra khoảng hở
+                        let min_clear = is_col ? Math.max(25, d_max) : Math.max(30, d_max);
+                        if (type === '2 lớp') min_clear = Math.max(50, d_max); 
+                        
+                        let n_row1 = (type === '2 lớp') ? Math.ceil(n / 2) : n;
+                        let clear = b - 2 * a_1 - 2 * 8 - n_row1 * d_max;
+                        let pass = clear >= (n_row1 > 1 ? (n_row1 - 1) * min_clear : 0);
+                        
+                        // 3. Tính điểm (Thấp nhất là tốt nhất)
+                        let areaScore = (AsP / As_req - 1) * 3000;      // Thép dư quá nhiều sẽ bị điểm cao
+                        let patternScore = (!is_col && n % 2 !== 0) ? 80 : 0; // Ưu tiên số thanh chẵn cho dầm
+                        let typeScore = (type === '1 lớp') ? 0 : (type === 'Liên hợp' ? 200 : 500); 
+                        let passPenalty = pass ? 0 : 1000000;           // Vi phạm khoảng hở thì phạt nặng
+                        
+                        all_opts.push({
+                            txt, AsP, pass,
+                            msg: pass ? type : `Quá dày (${type})`,
+                            score: passPenalty + areaScore + patternScore + typeScore + (n * 5)
+                        });
+                    };
+
                     // 1. Một loại đường kính (1 lớp)
                     for (let d of DIA_LIST) {
                         let a_bar = Math.PI * d * d / 4;
-                        let n = Math.ceil(As_req1 / a_bar);
-                        if (n < (is_col ? 4 : 2)) n = is_col ? 4 : 2;
-                        let AsP = n * a_bar;
-                        let min_clear = Math.max(25, d);
-                        let clear = b - 2 * a_1 - 2 * 8 - n * d;
-                        let pass = clear >= (n > 1 ? (n - 1) * min_clear : 0);
-                        all_opts.push({
-                            txt: `${n}Φ${d}`, AsP, pass,
-                            msg: pass ? "1 lớp" : `Quá dày (1 lớp)`,
-                            score: (pass ? 0 : 500000) + (AsP / As_req1 - 1) * 1000 + (n * 5)
-                        });
-                    }
-
-                    // 2. Phối hợp 2 loại đường kính (Dầm & Cột)
-                    const MIX_LIST = is_col ? [[22, 20], [20, 18], [18, 16], [25, 22]] : [[18, 16], [20, 18], [22, 20], [25, 22], [16, 14]];
-                    for (let [d1, d2] of MIX_LIST) {
-                        let a1 = Math.PI * d1 * d1 / 4, a2 = Math.PI * d2 * d2 / 4;
-                        let combos = is_col ? [[4, 2], [4, 4], [2, 2]] : [[2, 1], [2, 2], [3, 2], [2, 3]];
-                        for (let [n1, n2] of combos) {
-                            let AsP = n1 * a1 + n2 * a2;
-                            if (AsP >= As_req1 * 0.95) {
-                                let n = n1 + n2, d_max = Math.max(d1, d2);
-                                let clear = b - 2 * a_1 - 2 * 8 - n * d_max;
-                                let pass = clear >= (n - 1) * Math.max(25, d_max);
-                                all_opts.push({
-                                    txt: `${n1}Φ${d1} + ${n2}Φ${d2}`, AsP, pass,
-                                    msg: pass ? "Phối hợp" : "Quá dày (Phối hợp)",
-                                    score: (pass ? 400 : 700000) + (AsP / As_req1 - 1) * 1000 + (n * 5)
-                                });
-                            }
+                        let n_min = Math.ceil(As_req / a_bar);
+                        for(let n = n_min; n <= n_min + 3; n++) {
+                            if (n < (is_col ? 4 : 2)) continue;
+                            addOpt(`${n}Φ${d}`, n, d, n * a_bar, "1 lớp");
                         }
                     }
 
-                    // 3. Hai lớp thép (Cho Dầm)
-                    if (!is_col) {
+                    // 2. Phối hợp 2 loại đường kính
+                    const MIX_LIST = is_col ? [[25, 22], [22, 20], [20, 18], [18, 16]] : [[25, 22], [22, 20], [20, 18], [18, 16], [16, 14]];
+                    for (let [d1, d2] of MIX_LIST) {
+                        let a1 = Math.PI * d1 * d1 / 4, a2 = Math.PI * d2 * d2 / 4;
+                        let patterns = is_col ? [[4, 2], [4, 4], [2, 2]] : [[2, 1], [2, 2], [3, 2], [2, 3], [4, 2]];
+                        for (let [n1, n2] of patterns) {
+                            let AsP = n1 * a1 + n2 * a2;
+                            addOpt(`${n1}Φ${d1} + ${n2}Φ${d2}`, n1 + n2, Math.max(d1, d2), AsP, "Liên hợp");
+                        }
+                    }
+
+                    // 3. Hai lớp thép
+                    if (!is_col && As_req > 1000) {
                         for (let d of [16, 18, 20, 22, 25]) {
                             let a_bar = Math.PI * d * d / 4;
-                            let n = Math.ceil(As_req2 / a_bar);
-                            if (n < 4) n = 4;
-                            let AsP = n * a_bar;
-                            let n_row1 = Math.ceil(n / 2);
-                            let clear = b - 2 * a_2 - 2 * 8 - n_row1 * d;
-                            let pass = clear >= (n_row1 - 1) * Math.max(25, d);
-                            all_opts.push({
-                                txt: `${n}Φ${d}`, AsP, pass,
-                                msg: pass ? "2 lớp" : `Quá dày (2 lớp)`,
-                                score: (pass ? 1200 : 800000) + (AsP / As_req2 - 1) * 1000 + (n * 10)
-                            });
+                            let n_total = Math.ceil(As_req_2layer / a_bar);
+                            if (n_total < 4) n_total = 4;
+                            addOpt(`${n_total}Φ${d}`, n_total, d, n_total * a_bar, "2 lớp");
                         }
                     }
 
@@ -1438,40 +1460,57 @@
                     return all_opts.filter((v, i, a) => a.findIndex(t => (t.txt === v.txt)) === i).slice(0, 8);
                 },
 
-                calcShear(Q, b, h0, Rb, Rbt, stirrupSteelCode) {
-                    let m = MAT.steel[stirrupSteelCode];
-                    let Rsw = m.Rsw;
-                    let trace = `<b>[ Cắt Q = ${Q.toFixed(1)} kN ]</b>\n`;
-                    let Qmax = 0.3 * Rb * b * h0;
-                    let passCrush = (Q * 1000) <= Qmax;
-                    trace += `- Phá hoại bê tông nén bụng: Qmax = ${(Qmax / 1000).toFixed(1)} kN. ${passCrush ? "ĐẠT" : "<span class='err-msg'>VƯỢT MAX! Tiết diện bé</span>"}\n`;
-                    let Qb_min = 0.5 * Rbt * b * h0;
-                    let req_qsw = 0;
-                    if ((Q * 1000) <= Qb_min) {
-                        trace += `=> BT tự chịu cắt. Đai cấu tạo.\n`;
-                    } else {
-                        let c = 2 * h0;
-                        let Qb = 1.5 * Rbt * b * Math.pow(h0, 2) / c;
-                        let Qsw = (Q * 1000) - Qb;
-                        req_qsw = Math.max(0, Qsw / c);
-                    }
+                calcShear(Q_kN, b, h, h0, Rb, Rbt, stirrupSteelCode, g_wall = 0, g_s_max = 0, p_s_max = 0, aq = 1000, L_mm = 6000) {
+                    let matS = MAT.steel[stirrupSteelCode];
+                    if (!matS) matS = MAT.steel["CB240-T"];
+                    let Rsw = matS.Rsw;
+                    let Q = Q_kN * 1000;
+                    
+                    let cq = Math.min(2.5 * h0, 0.25 * L_mm);
+                    let safe_aq = aq || 1000;
+                    
+                    // Detailed Load Calculation
+                    let g_sw = (b * h * 25 * 1.1) * 1e-6; 
+                    let gs = (g_s_max * cq) / (2 * safe_aq); 
+                    let g = g_sw + g_wall + gs; 
+                    let p = (p_s_max * cq) / (2 * safe_aq);
+                    let q1 = g + 0.5 * p; 
+                    if (q1 <= 0) q1 = 1; // Safety floor for formulas
 
-                    let s1_max = h0 <= 450 ? Math.min(150, h0 / 2) : Math.min(300, h0 / 2);
-                    let s2_max = h0 <= 300 ? 500 : Math.min(500, 0.75 * h0);
+                    let Q_b_max = 2.5 * Rbt * b * h0;
+                    let Q_comp_check = 0.3 * Rb * b * h0;
+                    
+                    let Mb = 1.5 * Rbt * b * h0 * h0;
+                    let Qb_min = 0.5 * Rbt * b * h0;
+                    
+                    let cond_calc = Q > 2 * Math.sqrt(Mb * q1);
+                    let qsw1 = (Q*Q - 4*Mb*q1) / (3 * Mb);
+                    let qsw2 = (Q - 2 * Math.sqrt(Mb * q1)) / (1.5 * h0);
+                    let qsw3 = (Q - Qb_min - 3 * q1 * h0) / (1.5 * h0);
+                    let qsw_calc = Math.max(qsw1, qsw2, qsw3);
+                    
+                    let qsw_min = 0.25 * Rbt * b;
+                    let qsw_final = Math.max(qsw_calc, qsw_min);
+                    if (!cond_calc) qsw_final = qsw_min;
+
+                    let sMax = Q > 0 ? (Rbt * b * h0 * h0) / Q : 500;
+                    let sCt_goi = Math.min(0.5 * h0, 300);
+                    let sCt_nhip = Math.min(0.75 * h0, 500);
+
                     let best = null;
                     for (let d of [6, 8, 10]) {
-                        let Asw = 2 * Math.PI * d * d / 4; // 2 braches
-                        let s_calc = req_qsw > 0 ? (Rsw * Asw / req_qsw) : s1_max;
-                        let s1 = Math.floor(Math.min(s_calc, s1_max) / 50) * 50;
-                        if (s1 < 50) continue;
-                        let s2 = Math.floor(Math.min(s_calc * 1.5, s2_max) / 50) * 50;
-                        if (!best || s1 > best.s1) best = { d, s1, s2 };
+                        let Asw = 2 * Math.PI * d * d / 4; 
+                        let sCalculated = (Rsw * Asw) / qsw_final;
+                        let s1 = Math.floor(Math.min(sCalculated, sMax, sCt_goi) / 50) * 50;
+                        if (s1 < 50) s1 = 50; 
+                        let s2 = Math.floor(Math.min(sCalculated * 1.5, sMax, sCt_nhip) / 50) * 50;
+                        if (s2 < s1) s2 = s1;
+                        if (!best || s1 > best.s1) best = { d, s1, s2, Asw, sCalculated };
                     }
 
-                    if (!best) return { ok: false, trace: trace + "<span class='err-msg'>Đai Φ10 không đủ, tăng kích thước.</span>\n", txt: "---" };
-                    let txt = `Cốt đai 2 nhánh: Φ${best.d} a${best.s1} (gối) / a${best.s2} (nhịp)`;
-                    trace += `- Bố trí đai: <span class="val">${txt}</span>\n`;
-                    return { ok: passCrush, trace, txt };
+                    if (!best) return { ok: false, trace: "Lỗi tính đai!", txt: "---" };
+                    let txt = `Φ${best.d} a${best.s1}/a${best.s2}`;
+                    return { ok: Q <= Q_comp_check && Q <= Q_b_max, txt, Qmax: Q_comp_check, Q_b_max, Qb_min, cq, q1, Rsw, best, Mb, qsw1, qsw2, qsw3, qsw_calc, qsw_min, qsw_final, cond_calc, sMax, sCt_goi, sCt_nhip, g_sw, gs, g, p, g_wall, g_s_max, p_s_max, aq: safe_aq };
                 },
 
                 //MODULE SƠ BỘ TIẾT DIỆN TỰ ĐỘNG LƯỚI
@@ -1572,62 +1611,103 @@
                 },
 
                 beam(d) {
+                    let L_mm = (parseFloat(d.l_span) || 6) * 1000;
+                    let Sn_mm = (parseFloat(d.s_clear) || 3.5) * 1000;
+                    let b = parseFloat(d.b), h = parseFloat(d.h), hf = parseFloat(d.hf_f) || 0;
+                    let Sc = 0;
+                    // TCVN 5574:2018 - Clause 8.1.2.2.1
+                    if (hf >= 0.1 * h) {
+                        Sc = Math.min(L_mm / 6, Sn_mm / 2);
+                    } else if (hf >= 0.05 * h) {
+                        Sc = Math.min(L_mm / 6, Sn_mm / 2, 6 * hf);
+                    } else {
+                        Sc = 0;
+                    }
+                    d.bf_f = b + 2 * Sc;
+                    d.Sc_calc = Sc;
+
                     let m = this.getMat(d.conc, d.steel);
                     let { aR } = this.getAlphaR(m.Rb, m.Rs, m.Es);
-                    let h0_1 = d.h - d.a;
-                    let h0_2 = d.h - (d.a + 30); // Lớp 2 đẩy h0 lên
-                    let b = d.b;
+                    let h0_1 = h - d.a;
+                    let h0_2 = h - (d.a + 30);
                     let AsMin = 0.001 * b * h0_1;
 
-                    let trace = `<b>[ VẬT LIỆU ]</b> Bê tông ${d.conc} (Rb=${m.Rb.toFixed(2)}), Thép ${d.steel} (αR=${aR.toFixed(3)})\n\n`;
+                    let trace = `<b>[ VẬT LIỆU ]</b> Bê tông ${d.conc} (Rb=${m.Rb.toFixed(2)}), Thép ${d.steel} (αR=${aR.toFixed(3)})\n`;
+                    trace += `* bf' (TCVN) = b + 2*Sc = ${b} + 2*${Sc.toFixed(0)} = ${d.bf_f.toFixed(0)} mm.\n\n`;
 
-                    function solveM(M, name) {
+                    function solveM(M_in, name, isT = false, bf_f = 0, hf_f = 0) {
+                        let M = Math.abs(M_in);
                         trace += `<b>[ Tính ${name} M = ${M} kNm ]</b>\n`;
-                        let am1 = M * 1e6 / (m.Rb * b * h0_1 * h0_1);
-                        let As1 = 0, zeta1 = 0, ok = false, msg = "";
+                        
+                        let As1 = 0, ok = false, msg = "";
+                        let b_calc = b;
 
-                        // Tính Cốt đơn hoặc Cốt kép
-                        if (am1 <= aR) {
-                            zeta1 = 0.5 * (1 + Math.sqrt(1 - 2 * am1));
-                            As1 = (M * 1e6) / (m.Rs * zeta1 * h0_1);
-                            ok = true;
-                            trace += `- Tính cốt đơn: αm = ${am1.toFixed(3)} ≤ αR\n`;
+                        if (isT && bf_f > b && hf_f > 0) {
+                            // T-Beam Logic (TCVN 5574-2018)
+                            let Mf = m.Rb * bf_f * hf_f * (h0_1 - 0.5 * hf_f) * 1e-6; // kNm
+                            if (M <= Mf) {
+                                // Axis in Flange
+                                b_calc = bf_f;
+                                trace += `- Trục khướu nằm trong Cánh (M ≤ Mf = ${Mf.toFixed(1)} kNm). Tính như tiết diện chữ nhật b = bf' = ${bf_f} mm.\n`;
+                                let am1 = M * 1e6 / (m.Rb * b_calc * h0_1 * h0_1);
+                                if (am1 <= aR) {
+                                    let zeta = 0.5 * (1 + Math.sqrt(1 - 2 * am1));
+                                    As1 = (M * 1e6) / (m.Rs * zeta * h0_1);
+                                    ok = true;
+                                } else {
+                                    msg = "Vượt AlphaR (Cánh)";
+                                }
+                            } else {
+                                // Axis in Web
+                                trace += `- Trục khướu nằm trong Sườn (M > Mf = ${Mf.toFixed(1)} kNm).\n`;
+                                let M_web = M - m.Rb * (bf_f - b) * hf_f * (h0_1 - 0.5 * hf_f) * 1e-6;
+                                let am_web = M_web * 1e6 / (m.Rb * b * h0_1 * h0_1);
+                                if (am_web <= aR) {
+                                    let zeta_w = 0.5 * (1 + Math.sqrt(1 - 2 * am_web));
+                                    As1 = (M_web * 1e6) / (m.Rs * zeta_w * h0_1) + (m.Rb * (bf_f - b) * hf_f) / m.Rs;
+                                    ok = true;
+                                } else {
+                                    msg = "Vượt AlphaR (Sườn)";
+                                }
+                            }
                         } else {
-                            // CỐT KÉP
-                            trace += `- <span class="status-warn">Tính CỐT KÉP do αm = ${am1.toFixed(3)} > αR!</span>\n`;
-                            let zR = h0_1 * (1 - 0.5 * this.getAlphaR(m.Rb, m.Rs, m.Es).xi_R);
-                            let MR = aR * m.Rb * b * h0_1 * h0_1;
-                            let Asc = (M * 1e6 - MR) / (m.Rsc * (h0_1 - d.a));
-                            As1 = (MR) / (m.Rs * zR) + Asc;
-                            ok = true; // Auto handled
-                            trace += `- Moment bê tông gánh MR = ${(MR / 1e6).toFixed(1)} kNm, As_cần_thêm = ${Asc.toFixed(1)} mm²\n`;
+                            // Rectangular Logic
+                            let am1 = M * 1e6 / (m.Rb * b * h0_1 * h0_1);
+                            if (am1 <= aR) {
+                                let zeta1 = 0.5 * (1 + Math.sqrt(1 - 2 * am1));
+                                As1 = (M * 1e6) / (m.Rs * zeta1 * h0_1);
+                                ok = true;
+                                trace += `- Tính cốt đơn: αm = ${am1.toFixed(3)} ≤ αR\n`;
+                            } else {
+                                trace += `- <span class="status-warn">Tính CỐT KÉP do αm = ${am1.toFixed(3)} > αR!</span>\n`;
+                                let zR = h0_1 * (1 - 0.5 * this.getAlphaR(m.Rb, m.Rs, m.Es).xi_R);
+                                let MR = aR * m.Rb * b * h0_1 * h0_1;
+                                let Asc = (M * 1e6 - MR) / (m.Rsc * (h0_1 - d.a));
+                                As1 = (MR) / (m.Rs * zR) + Asc;
+                                ok = true;
+                                trace += `- MR = ${(MR / 1e6).toFixed(1)} kNm, As_cần_thêm = ${Asc.toFixed(1)} mm²\n`;
+                            }
                         }
+
                         As1 = Math.max(As1, AsMin);
 
-                        // Re-calculate exactly for Layer 2 (h0_2)
-                        let am2 = M * 1e6 / (m.Rb * b * h0_2 * h0_2);
-                        let As2 = As1 * (h0_1 / h0_2); // Approximation directly scaling or exact calc. I'll use scaling for robust.
-                        if (am2 <= aR) {
-                            let z2 = 0.5 * (1 + Math.sqrt(1 - 2 * am2));
-                            As2 = (M * 1e6) / (m.Rs * z2 * h0_2);
-                        }
-
-                        // Đề xuất Thép song song 4 phương án
+                        // Propose Rebar (Scale for layer 2 if needed)
+                        let b_eff = (isT && bf_f > b && hf_f > 0) ? (M <= (m.Rb * bf_f * hf_f * (h0_1 - 0.5 * hf_f) * 1e-6) ? bf_f : b) : b;
+                        let As2 = As1 * (h0_1 / h0_2); 
                         let props = Engine.proposeRebar(As1, b, d.a, As2, d.a + 30, false);
-
                         props.forEach((p, idx) => {
-                            trace += `- Cơ sở PA${idx + 1} (${p.msg}): <span class="val">${p.txt} (As_prov = ${p.AsP.toFixed(1)})</span> => ${p.pass ? "Chọn được" : "<span class='status-fail'>" + p.msg + "</span>"}\n`;
+                             trace += `- PA${idx + 1}: <span class="val">${p.txt} (As_prov = ${p.AsP.toFixed(1)})</span> => ${p.pass ? "Chọn được" : "<span class='status-fail'>" + p.msg + "</span>"}\n`;
                         });
                         trace += `\n`;
-
                         return { As_req: As1, prop: props[0], props, ok, msg };
                     }
 
-                    let pos = solveM.call(this, d.mpos, "Nhịp");
-                    let neg = solveM.call(this, d.mneg, "Gối");
-                    let shear = this.calcShear(d.q, b, h0_1, m.Rb, m.Rbt, d.stirrup_steel);
+                    let left = solveM.call(this, d.m_left, "Gối Trái");
+                    let pos = solveM.call(this, d.mpos, "Nhịp (Chữ T)", true, d.bf_f, d.hf_f);
+                    let right = solveM.call(this, d.m_right, "Gối Phải");
+                    let shear = this.calcShear(d.v_shear, b, h, h0_1, m.Rb, m.Rbt, d.stirrup_steel, d.g_wall, d.g_s_max, d.p_s_max, d.aq, L_mm);
 
-                    return { trace: trace + shear.trace, pos, neg, shear, global: pos.ok && neg.ok && shear.ok };
+                    return { trace: trace + shear.trace, left, pos, right, shear, global: left.ok && pos.ok && right.ok && shear.ok };
                 },
 
                 column(d) {
@@ -1666,7 +1746,7 @@
                     });
                     trace += `\n`;
 
-                    let shear = this.calcShear(d.q, b, h0, m.Rb, m.Rbt, d.stirrup_steel);
+                    let shear = this.calcShear(d.q, b, d.h, h0, m.Rb, m.Rbt, d.stirrup_steel, 0, 0, 0, 1000, d.l0 * 1000);
 
                     return { trace: trace + shear.trace, As_req: As, prop, props, shear, global: prop.pass && shear.ok };
                 },
@@ -2297,7 +2377,7 @@
                         elevDiv.innerHTML = `<div class="sticky-top bg-black text-success small p-2 uppercase fw-bold border-bottom border-secondary mb-1" style="font-size:0.7rem; z-index:50;">Mặt Đứng Kết Cấu (Revit Style)</div>` + svg;
                     }
                 },
-                drawBeamSection(id, b, h, a, topBarsTxt, botBarsTxt, stirrupTxt) {
+                drawBeamSection(id, b, h, a, topBarsTxt, botBarsTxt, stirrupTxt, bf = 0, hf = 0) {
                     const container = document.getElementById(id);
                     if (!container) return;
 
@@ -2313,12 +2393,21 @@
                     };
 
                     const topArr = parseBars(topBarsTxt), botArr = parseBars(botBarsTxt);
-                    const vbX = 200, vbY = 200; // Extra padding total
-                    let svg = `<svg viewBox="-100 -100 ${b + vbX} ${h + vbY}" style="max-height:280px; width:auto; display:block; margin:0 auto;">`;
+                    const isT = (bf > b && hf > 0);
+                    const drawW = isT ? bf : b;
+                    const offset = isT ? (bf - b) / 2 : 0;
+                    
+                    const vbX = 200, vbY = 200;
+                    let svg = `<svg viewBox="-100 -100 ${drawW + vbX} ${h + vbY}" style="max-height:280px; width:auto; display:block; margin:0 auto;">`;
 
                     // 1. Concrete & Stirrup
-                    svg += `<rect x="0" y="0" width="${b}" height="${h}" fill="#1a1d20" stroke="#6c757d" stroke-width="2" />`;
-                    svg += `<rect x="${a}" y="${a}" width="${b - 2 * a}" height="${h - 2 * a}" fill="none" stroke="#20c997" stroke-width="2.5" rx="5" />`;
+                    if (isT) {
+                        svg += `<path d="M 0,0 L ${bf},0 L ${bf},${hf} L ${offset + b},${hf} L ${offset + b},${h} L ${offset},${h} L ${offset},${hf} L 0,${hf} Z" fill="#1a1d20" stroke="#6c757d" stroke-width="2" />`;
+                        svg += `<rect x="${offset + a}" y="${a}" width="${b - 2 * a}" height="${h - 2 * a}" fill="none" stroke="#20c997" stroke-width="2.5" rx="5" />`;
+                    } else {
+                        svg += `<rect x="0" y="0" width="${b}" height="${h}" fill="#1a1d20" stroke="#6c757d" stroke-width="2" />`;
+                        svg += `<rect x="${a}" y="${a}" width="${b - 2 * a}" height="${h - 2 * a}" fill="none" stroke="#20c997" stroke-width="2.5" rx="5" />`;
+                    }
 
                     // 2. Bars Helper
                     const d_st = 8;
@@ -2326,41 +2415,43 @@
                         let allD = []; bars.forEach(g => { for (let i = 0; i < g.n; i++) allD.push(g.d); });
                         if (allD.length === 0) return "";
                         let d_max = Math.max(...allD);
-                        let y = isTop ? (a + d_st + d_max / 2) : (h - (a - d_st - d_max / 2)); // Tọa độ y của tâm thép
-                        if (!isTop) y = h - (a + d_st + d_max / 2);
+                        let y = isTop ? (a + d_st + d_max / 2) : (h - (a + d_st + d_max / 2)); 
 
-                        let x_s = a + d_st + d_max / 2, x_e = b - (a + d_st + d_max / 2);
+                        let x_s = offset + a + d_st + d_max / 2, x_e = offset + b - (a + d_st + d_max / 2);
                         let step = allD.length > 1 ? (x_e - x_s) / (allD.length - 1) : 0;
-                        if (allD.length === 1) x_s = b / 2;
+                        if (allD.length === 1) x_s = offset + b / 2;
 
                         let s = "";
                         allD.forEach((d, i) => {
                             s += `<circle cx="${(x_s + i * step).toFixed(1)}" cy="${y.toFixed(1)}" r="${(d / 2).toFixed(1)}" fill="#fd7e14" stroke="white" stroke-width="1" />`;
                         });
 
-                        // Labels & Leaders
                         let labelY = isTop ? -60 : h + 80;
                         let lineY = isTop ? a : h - a;
                         let txt = bars.map(g => `${g.n}Φ${g.d}`).join('+');
 
-                        s += `<line x1="${(b / 2).toFixed(1)}" y1="${lineY}" x2="${(b / 2).toFixed(1)}" y2="${(labelY + (isTop ? 15 : -15)).toFixed(1)}" stroke="#fd7e14" stroke-width="1" stroke-dasharray="3,2" />`;
-                        s += `<text x="${(b / 2).toFixed(1)}" y="${labelY}" font-size="28" fill="#ffc107" font-weight="bold" text-anchor="middle">${txt}</text>`;
+                        s += `<line x1="${(offset + b / 2).toFixed(1)}" y1="${lineY}" x2="${(offset + b / 2).toFixed(1)}" y2="${(labelY + (isTop ? 15 : -15)).toFixed(1)}" stroke="#fd7e14" stroke-width="1" stroke-dasharray="3,2" />`;
+                        s += `<text x="${(offset + b / 2).toFixed(1)}" y="${labelY}" font-size="28" fill="#ffc107" font-weight="bold" text-anchor="middle">${txt}</text>`;
                         return s;
                     };
 
-                    svg += drawRow(topArr, true);  // Lớp trên (Gối)
-                    svg += drawRow(botArr, false); // Lớp dưới (Nhịp)
+                    svg += drawRow(topArr, true);  
+                    svg += drawRow(botArr, false); 
 
                     // 3. Stirrups
                     if (stirrupTxt && stirrupTxt !== "-") {
                         let sy = (h / 2).toFixed(1);
-                        svg += `<line x1="${(b - a + 10).toFixed(1)}" y1="${sy}" x2="${(b + 20).toFixed(1)}" y2="${sy}" stroke="#20c997" stroke-width="1.5" />`;
-                        svg += `<text x="${(b + 25).toFixed(1)}" y="${(h / 2 + 8).toFixed(1)}" font-size="22" fill="#20c997" text-anchor="start" font-weight="bold">${stirrupTxt}</text>`;
+                        svg += `<line x1="${(offset + b - a + 10).toFixed(1)}" y1="${sy}" x2="${(offset + b + 20).toFixed(1)}" y2="${sy}" stroke="#20c997" stroke-width="1.5" />`;
+                        svg += `<text x="${(offset + b + 25).toFixed(1)}" y="${(h / 2 + 8).toFixed(1)}" font-size="22" fill="#20c997" text-anchor="start" font-weight="bold">${stirrupTxt}</text>`;
                     }
 
                     // 4. Dimensions
-                    svg += `<text x="${(b / 2).toFixed(1)}" y="${(h + 40).toFixed(1)}" font-size="22" fill="#adb5bd" text-anchor="middle" font-style="italic">b = ${b}</text>`;
-                    svg += `<text x="-60" y="${(h / 2 + 8).toFixed(1)}" font-size="22" fill="#adb5bd" text-anchor="middle" transform="rotate(-90, -60, ${h / 2 + 8})">h = ${h}</text>`;
+                    svg += `<text x="${(offset + b / 2).toFixed(1)}" y="${(h + 40).toFixed(1)}" font-size="22" fill="#adb5bd" text-anchor="middle" font-style="italic">b = ${b}</text>`;
+                    if (isT) {
+                        svg += `<text x="${(bf / 2).toFixed(1)}" y="-25" font-size="20" fill="#0dcaf0" text-anchor="middle">bf' = ${bf}</text>`;
+                        svg += `<text x="${bf + 15}" y="${hf / 2 + 5}" font-size="18" fill="#0dcaf0" text-anchor="start">hf' = ${hf}</text>`;
+                    }
+                    svg += `<text x="${offset - 60}" y="${(h / 2 + 8).toFixed(1)}" font-size="22" fill="#adb5bd" text-anchor="middle" transform="rotate(-90, ${offset - 60}, ${h / 2 + 8})">h = ${h}</text>`;
 
                     svg += `</svg>`;
                     container.innerHTML = svg;
@@ -2702,16 +2793,22 @@
                     let type, parent;
                     if (typeof source === 'string') {
                         type = source;
-                        const containerId = type === 'pos' ? 'svg-beam-pos' : 'svg-beam-neg';
+                        let containerId;
+                        if (type === 'pos') containerId = 'svg-beam-pos';
+                        else if (type === 'left') containerId = 'svg-beam-left';
+                        else containerId = 'svg-beam-right';
                         parent = document.getElementById(containerId)?.parentElement.parentElement;
                     } else {
                         parent = source.closest('.row');
-                        type = parent.querySelector('#svg-beam-pos') ? 'pos' : 'neg';
+                        if (parent.querySelector('#svg-beam-pos')) type = 'pos';
+                        else if (parent.querySelector('#svg-beam-left')) type = 'left';
+                        else type = 'right';
                     }
 
                     if (!parent) return;
                     const fd = new FormData(document.getElementById('f-beam'));
                     const b = parseFloat(fd.get('b')) || 200, h = parseFloat(fd.get('h')) || 400, a = parseFloat(fd.get('a')) || 25;
+                    const bf = parseFloat(fd.get('bf_f')) || b, hf = parseFloat(fd.get('hf_f')) || 0;
 
                     const n1 = parseInt(parent.querySelector('.mat-manual-n1').value) || 0;
                     const d1 = parseInt(parent.querySelector('.mat-manual-d1').value) || 0;
@@ -2721,16 +2818,18 @@
                     const txt = `${n1}Φ${d1}${n2 > 0 ? ' + ' + n2 + 'Φ' + d2 : ''}`;
 
                     if (type === 'pos') {
-                        Visualizer.drawBeamSection('svg-beam-pos', b, h, a, "", txt, "");
+                        Visualizer.drawBeamSection('svg-beam-pos', b, h, a, "", txt, "", bf, hf);
+                    } else if (type === 'left') {
+                        Visualizer.drawBeamSection('svg-beam-left', b, h, a, txt, "", "");
                     } else {
-                        Visualizer.drawBeamSection('svg-beam-neg', b, h, a, txt, "", "");
+                        Visualizer.drawBeamSection('svg-beam-right', b, h, a, txt, "", "");
                     }
 
                     // Cập nhật Combined Section
                     const combined = document.getElementById('svg-beam-combined');
                     if (combined) {
                         const rowPos = document.getElementById('svg-beam-pos')?.closest('.row');
-                        const rowNeg = document.getElementById('svg-beam-neg')?.closest('.row');
+                        const rowLeft = document.getElementById('svg-beam-left')?.closest('.row');
 
                         const getT = (r) => {
                             if (!r) return "";
@@ -2739,16 +2838,21 @@
                             return `${n1}Φ${d1}${n2 > 0 ? ' + ' + n2 + 'Φ' + d2 : ''}`;
                         }
 
-                        const posTxt = getT(rowPos), negTxt = getT(rowNeg);
+                        const posTxt = getT(rowPos), leftTxt = getT(rowLeft);
                         const stirrupTxt = document.getElementById('beam-stirrup-res')?.innerText || "";
-                        Visualizer.drawBeamSection('svg-beam-combined', b, h, a, negTxt, posTxt, stirrupTxt);
+                        Visualizer.drawBeamSection('svg-beam-combined', b, h, a, leftTxt, posTxt, stirrupTxt, bf, hf);
                     }
                 },
                 selectBeamProp(type, txt) {
                     const match = txt.match(/(\d+)Φ(\d+)/);
                     if (!match) return;
                     const n = match[1], d = match[2];
-                    const containerId = type === 'pos' ? 'svg-beam-pos' : 'svg-beam-neg';
+                    
+                    let containerId;
+                    if (type === 'pos') containerId = 'svg-beam-pos';
+                    else if (type === 'left') containerId = 'svg-beam-left';
+                    else containerId = 'svg-beam-right';
+
                     const parent = document.getElementById(containerId).parentElement.parentElement;
 
                     parent.querySelector('.mat-manual-n1').value = n;
@@ -2756,10 +2860,13 @@
                     parent.querySelector('.mat-manual-n2').value = 0;
 
                     // Cập nhật track phương án
-                    const props = type === 'pos' ? (Engine.beam(window.lastCalcData).pos.props) : (Engine.beam(window.lastCalcData).neg.props);
+                    const results = Engine.beam(window.lastCalcData);
+                    const props = results[type].props;
                     const idx = props.findIndex(p => p.txt === txt);
+                    
                     if (type === 'pos') window.selBeamPos = idx !== -1 ? idx + 1 : -1;
-                    else window.selBeamNeg = idx !== -1 ? idx + 1 : -1;
+                    else if (type === 'left') window.selBeamLeft = idx !== -1 ? idx + 1 : -1;
+                    else window.selBeamRight = idx !== -1 ? idx + 1 : -1;
 
                     // Trigger calculation update + graphic update
                     parent.querySelector('.mat-manual-n1').dispatchEvent(new Event('change'));
@@ -2977,6 +3084,22 @@
                         } else if (data.type === 'beam') {
                             res = Engine.beam(data);
                             html = `<div class="alert ${res.global ? 'alert-success' : 'alert-danger'} mb-2"><b>${res.global ? 'ĐẠT TIÊU CHUẨN' : 'KHÔNG ĐẠT TIÊU CHUẨN'}</b></div>
+                            <!-- Gối Trái -->
+                            <div class="card bg-dark border-secondary p-3 mb-3 shadow-lg">
+                                <h6 class="text-primary border-bottom border-secondary pb-2 mb-3"><i class="fas fa-layer-group"></i> THÉP GỐI TRÁI M(-)</h6>
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <div class="text-white-50 small mb-2 uppercase fw-bold">Phương án đề xuất</div>
+                                        ${res.left.props.map((p, i) => `<div class="mb-2 p-2 bg-black bg-opacity-25 rounded border border-secondary border-opacity-50" style="font-size:0.85rem; cursor:pointer;" onclick="UI.selectBeamProp('left', '${p.txt}')"><b>P.án ${i + 1}:</b> <span class="${p.pass ? 'text-info fw-bold' : 'status-fail'}">${p.txt}</span></div>`).join('')}
+                                    </div>
+                                    <div class="col-md-4 text-center border-start border-end border-secondary border-opacity-25">
+                                        <div id="svg-beam-left" style="min-height:180px"></div>
+                                    </div>
+                                    ${getManualUI(res.left.As_req)}
+                                </div>
+                                <div class="mt-2 small text-info">As_yêu cầu: ${res.left.As_req.toFixed(1)} mm²</div>
+                            </div>
+                            <!-- Nhịp -->
                             <div class="card bg-dark border-secondary p-3 mb-3 shadow-lg">
                                 <h6 class="text-primary border-bottom border-secondary pb-2 mb-3"><i class="fas fa-layer-group"></i> THÉP NHỊP M(+)</h6>
                                 <div class="row align-items-center">
@@ -2985,26 +3108,28 @@
                                         ${res.pos.props.map((p, i) => `<div class="mb-2 p-2 bg-black bg-opacity-25 rounded border border-secondary border-opacity-50" style="font-size:0.85rem; cursor:pointer;" onclick="UI.selectBeamProp('pos', '${p.txt}')"><b>P.án ${i + 1}:</b> <span class="${p.pass ? 'text-info fw-bold' : 'status-fail'}">${p.txt}</span></div>`).join('')}
                                     </div>
                                     <div class="col-md-4 text-center border-start border-end border-secondary border-opacity-25">
-                                        <div id="svg-beam-pos" style="min-height:220px"></div>
+                                        <div id="svg-beam-pos" style="min-height:180px"></div>
                                     </div>
                                     ${getManualUI(res.pos.As_req)}
                                 </div>
                                 <div class="mt-2 small text-info">As_yêu cầu: ${res.pos.As_req.toFixed(1)} mm²</div>
                             </div>
+                            <!-- Gối Phải -->
                             <div class="card bg-dark border-secondary p-3 mb-3 shadow-lg">
-                                <h6 class="text-primary border-bottom border-secondary pb-2 mb-3"><i class="fas fa-layer-group"></i> THÉP GỐI M(-)</h6>
+                                <h6 class="text-primary border-bottom border-secondary pb-2 mb-3"><i class="fas fa-layer-group"></i> THÉP GỐI PHẢI M(-)</h6>
                                 <div class="row align-items-center">
                                     <div class="col-md-4">
                                         <div class="text-white-50 small mb-2 uppercase fw-bold">Phương án đề xuất</div>
-                                        ${res.neg.props.map((p, i) => `<div class="mb-2 p-2 bg-black bg-opacity-25 rounded border border-secondary border-opacity-50" style="font-size:0.85rem; cursor:pointer;" onclick="UI.selectBeamProp('neg', '${p.txt}')"><b>P.án ${i + 1}:</b> <span class="${p.pass ? 'text-info fw-bold' : 'status-fail'}">${p.txt}</span></div>`).join('')}
+                                        ${res.right.props.map((p, i) => `<div class="mb-2 p-2 bg-black bg-opacity-25 rounded border border-secondary border-opacity-50" style="font-size:0.85rem; cursor:pointer;" onclick="UI.selectBeamProp('right', '${p.txt}')"><b>P.án ${i + 1}:</b> <span class="${p.pass ? 'text-info fw-bold' : 'status-fail'}">${p.txt}</span></div>`).join('')}
                                     </div>
                                     <div class="col-md-4 text-center border-start border-end border-secondary border-opacity-25">
-                                        <div id="svg-beam-neg" style="min-height:220px"></div>
+                                        <div id="svg-beam-right" style="min-height:180px"></div>
                                     </div>
-                                    ${getManualUI(res.neg.As_req)}
+                                    ${getManualUI(res.right.As_req)}
                                 </div>
-                                <div class="mt-2 small text-info">As_yêu cầu: ${res.neg.As_req.toFixed(1)} mm²</div>
+                                <div class="mt-2 small text-info">As_yêu cầu: ${res.right.As_req.toFixed(1)} mm²</div>
                             </div>
+                            
                             <div class="card bg-dark border-secondary p-3 mb-3 shadow-lg">
                                 <h6 class="text-success border-bottom border-secondary pb-2 mb-3"><i class="fas fa-microscope"></i> TỔNG HỢP MẶT CẮT KẾT CẤU</h6>
                                 <div id="svg-beam-combined" style="min-height:250px"></div>
@@ -3024,10 +3149,13 @@
                                     if (!r) return "2Φ14"; // Default
                                     return `${r.querySelector('.mat-manual-n1').value}Φ${r.querySelector('.mat-manual-d1').value}`;
                                 };
-                                const bPos = getT('svg-beam-pos'), bNeg = getT('svg-beam-neg');
+                                const bPos = getT('svg-beam-pos');
+                                const bLeft = getT('svg-beam-left');
+                                const bRight = getT('svg-beam-right');
                                 Visualizer.drawBeamSection('svg-beam-pos', b, h, a, "", bPos, "");
-                                Visualizer.drawBeamSection('svg-beam-neg', b, h, a, bNeg, "", "");
-                                Visualizer.drawBeamSection('svg-beam-combined', b, h, a, bNeg, bPos, res.shear.txt);
+                                Visualizer.drawBeamSection('svg-beam-left', b, h, a, bLeft, "", "");
+                                Visualizer.drawBeamSection('svg-beam-right', b, h, a, bRight, "", "");
+                                Visualizer.drawBeamSection('svg-beam-combined', b, h, a, bLeft, bPos, res.shear.txt);
                             }, 50);
                             return;
                         } else if (data.type === 'col') {
@@ -3687,24 +3815,30 @@
                                 if (pStart.M3 >= 0) pStart = itm.points.slice(0, Math.ceil(itm.points.length/3)).reduce((prev, curr) => (curr.M3 < prev.M3) ? curr : prev, itm.points[0]);
                                 if (pEnd.M3 >= 0) pEnd = itm.points.slice(-Math.ceil(itm.points.length/3)).reduce((prev, curr) => (curr.M3 < prev.M3) ? curr : prev, itm.points[itm.points.length-1]);
 
-                                const processSection = (p, zone, isNeg) => {
+                                const processSection = (p, zone, side) => {
                                     let b = itm.b || 220, h = itm.h || 400;
                                     let mPos = Math.max(0, p.M3), mNeg = Math.abs(Math.min(0, p.M3));
-                                    let res = Engine.beam({ conc: conc, steel: steel, stirrup_steel: stirrup, b: b, h: h, a: 35, mpos: mPos, mneg: mNeg, q: Math.abs(p.V2 || 0) });
-                                    let sub = isNeg ? res.neg : res.pos;
+                                    // Map to the new Engine.beam inputs
+                                    let beamData = { conc, steel, stirrup_steel: stirrup, b, h, a: 35, q: Math.abs(p.V2 || 0) };
+                                    if (side === 'pos') beamData.mpos = mPos;
+                                    else if (side === 'left') beamData.m_left = mNeg;
+                                    else if (side === 'right') beamData.m_right = mNeg;
+
+                                    let res = Engine.beam(beamData);
+                                    let sub = res[side];
                                     let asReqVal = parseFloat(sub.As_req) || 0;
                                     return {
                                         Story: itm.story, Name: itm.label, b: b, h: h, Station: (p.station || 0).toFixed(3),
                                         Zone: zone, isCol: false,
-                                        M_max: (isNeg ? mNeg : mPos).toFixed(2), Q_max: Math.abs(p.V2 || 0).toFixed(2),
+                                        M_max: (side !== 'pos' ? mNeg : mPos).toFixed(2), Q_max: Math.abs(p.V2 || 0).toFixed(2),
                                         As_req: asReqVal.toFixed(1), As_prov: sub.prop.AsP.toFixed(1),
-                                        Rebar: (isNeg ? "Trên: " : "Dưới: ") + sub.prop.txt, Stirrup: res.shear.txt,
+                                        Rebar: (side !== 'pos' ? "Trên: " : "Dưới: ") + sub.prop.txt, Stirrup: res.shear.txt,
                                         Status: (parseFloat(sub.prop.AsP) >= asReqVal && sub.prop.pass) ? "ĐẠT" : "KHÔNG ĐẠT",
                                         props: sub.props, mu: (sub.prop.AsP / ((h - 35) * b) * 100).toFixed(2)
                                     };
                                 };
 
-                                return [processSection(pStart, "Đầu dầm (Gối)", true), processSection(pMid, "Bụng dầm", false), processSection(pEnd, "Cuối dầm (Gối)", true)];
+                                return [processSection(pStart, "Đầu dầm (Gối)", "left"), processSection(pMid, "Bụng dầm", "pos"), processSection(pEnd, "Cuối dầm (Gối)", "right")];
                             }
                         });
 
@@ -3887,25 +4021,137 @@
                         const n2 = parseInt(r.querySelector('.mat-manual-n2').value) || 0, d2 = parseInt(r.querySelector('.mat-manual-d2').value) || 0;
                         return { txt: `${n1}Φ${d1}${n2 > 0 ? '+' + n2 + 'Φ' + d2 : ''}`, area: (n1 * Math.PI * d1 * d1 / 4) + (n2 * Math.PI * d2 * d2 / 4) };
                     }
-                    const tPos = getT('svg-beam-pos'), tNeg = getT('svg-beam-neg');
+                    const tPos = getT('svg-beam-pos');
+                    const tLeft = getT('svg-beam-left');
+                    const tRight = getT('svg-beam-right');
 
-                    const renderFlexure = (M, name, As_req, txt, area) => {
-                        let am = (M * 1e6) / (m.Rb * b * h0 * h0);
-                        let str = `<div style="margin-bottom:10px;"><b>Tính toán thép ${name} (M = ${M} kNm):</b></div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Hệ số <i>&alpha;<sub>m</sub></i> = (<i>M</i> &times; 10<sup>6</sup>) / (<i>R<sub>b</sub></i> &times; <i>b</i> &times; <i>h<sub>0</sub></i><sup>2</sup>) = (${M} &times; 10<sup>6</sup>) / (${Rb} &times; ${b} &times; ${h0}<sup>2</sup>) = ${am.toFixed(3)}.</div>`;
+                        const renderFlexure = (M, name, As_req, txt, area, isT = false) => {
+                            let M_val = Math.abs(M);
+                            let bf = isT ? (data.bf_f || b) : b;
+                            let hf = data.hf_f || 0;
+                            let html = `<div style="margin-bottom:25px; page-break-inside:avoid;">
+                                <div style="font-weight:bold; margin-bottom:12px; font-size:13.5pt;">● ${name.includes('Gối') ? 'Tính cốt thép chịu mô men âm tại ' : 'Tính cốt thép chịu mô men dương tại '}${name}:</div>`;
+                            
+                            html += `<div style="margin-left:25px; margin-bottom:12px;">Giả thiết <i>a</i> = ${a} (mm) &rarr; <i>h<sub>0</sub></i> = <i>h</i> - <i>a</i> = ${h} - ${a} = <b>${h0} (mm)</b>.</div>`;
 
-                        if (am <= aR) {
-                            let zeta = 0.5 * (1 + Math.sqrt(Math.max(0, 1 - 2 * am)));
-                            str += `<div style="margin-left:25px; margin-bottom:5px;">- Vì <i>&alpha;<sub>m</sub></i> &le; <i>&alpha;<sub>R</sub></i> (${aR.toFixed(3)}) &rarr; Tính cốt đơn. <i>&zeta;</i> = 0.5 &times; [1 + (1 - 2 &times; ${am.toFixed(3)})<sup>0.5</sup>] = ${zeta.toFixed(3)}.</div>
-                        <div style="margin-left:25px; margin-bottom:5px;">- <i>A<sub>s,yc</sub></i> = (<i>M</i> &times; 10<sup>6</sup>) / (<i>R<sub>s</sub></i> &times; <i>&zeta;</i> &times; <i>h<sub>0</sub></i>) = (${M} &times; 10<sup>6</sup>) / (${Rs} &times; ${zeta.toFixed(3)} &times; ${h0}) = <b>${((M * 1e6) / (Rs * zeta * h0)).toFixed(1)} mm<sup>2</sup></b>.</div>`;
-                        } else {
-                            str += `<div style="margin-left:25px; margin-bottom:5px;">- Vì <i>&alpha;<sub>m</sub></i> > <i>&alpha;<sub>R</sub></i> (${aR.toFixed(3)}) &rarr; Phải tính CỐT KÉP (bổ sung cốt thép chịu nén).</div>
-                        <div style="margin-left:25px; margin-bottom:5px;">- <i>A<sub>s,yc</sub></i> tổng cộng = <b>${As_req.toFixed(1)} mm<sup>2</sup></b>.</div>`;
-                        }
-                        str += `<div style="margin-left:25px; margin-bottom:5px;">- Kiểm tra hàm lượng tối thiểu: <i>A<sub>s,min</sub></i> = 0.1% &times; <i>b</i> &times; <i>h<sub>0</sub></i> = ${AsMin.toFixed(1)} mm<sup>2</sup>.</div>
-                    <div style="margin-left:25px; margin-bottom:15px; font-weight:bold;">&rArr; Chọn thép ${name}: Bố trí ${txt} có <i>A<sub>s,chọn</sub></i> = ${area.toFixed(1)} mm<sup>2</sup>.</div>`;
-                        return str;
-                    };
+                            let b_current = b;
+                            if (isT) {
+                                // Sc and bf calculation integrated here
+                                html += `<div style="margin-left:25px; margin-bottom:12px;"><b>- Xác định chiều rộng cánh tính toán <i>b'<sub>f</sub></i> (TCVN 5574:2018):</b><br>
+                                &nbsp;&nbsp;+ Nhịp dầm <i>L</i> = ${data.l_span} m; Khoảng cách thông thủy giữa các sườn dầm <i>S<sub>n</sub></i> = ${data.s_clear} m.<br>
+                                &nbsp;&nbsp;+ Độ vươn của cánh <i>S<sub>c</sub></i> lấy nhỏ hơn các trị số sau:<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;* 1/6 nhịp dầm: <i>L</i> / 6 = ${(data.l_span * 1000 / 6).toFixed(0)} mm.<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;* 1/2 khoảng cách thông thủy: <i>S<sub>n</sub></i> / 2 = ${(data.s_clear * 1000 / 2).toFixed(0)} mm.<br>
+                                ${(data.hf_f < 0.1 * h) ? `&nbsp;&nbsp;&nbsp;&nbsp;* Giới hạn theo chiều dày cánh: 6<i>h'<sub>f</sub></i> = ${(6 * data.hf_f).toFixed(0)} mm.<br>` : ''}
+                                &nbsp;&nbsp;&rArr; Chọn <i>S<sub>c</sub></i> = <b>${data.Sc_calc.toFixed(0)} mm</b>.<br>
+                                &nbsp;&nbsp;&rArr; Chiều rộng cánh tính toán: <b><i>b'<sub>f</sub></i> = <i>b</i> + 2<i>S<sub>c</sub></i> = ${b} + 2 &times; ${data.Sc_calc.toFixed(0)} = ${bf.toFixed(2)} mm</b>.</div>`;
+
+                                let Mf = m.Rb * bf * hf * (h0 - 0.5 * hf) * 1e-6;
+                                html += `<div style="margin-left:25px; margin-bottom:8px;">Xét tiết diện chữ T: <i>b'<sub>f</sub></i> = ${bf.toFixed(2)} mm, <i>h'<sub>f</sub></i> = ${hf} mm. Khả năng chịu lực cánh: <i>M<sub>f</sub></i> = <b>${Mf.toFixed(1)} kNm</b>.</div>`;
+                                
+                                if (M_val <= Mf) {
+                                    html += `<div style="margin-left:25px; margin-bottom:12px;">Vì <i>M</i> &le; <i>M<sub>f</sub></i> &rarr; Trục trung hòa nằm trong cánh. Tính toán như tiết diện chữ nhật bề rộng <i>b</i> = ${bf.toFixed(2)} mm.</div>`;
+                                    b_current = bf;
+                                } else {
+                                    let M_ov = m.Rb * (bf - b) * hf * (h0 - 0.5 * hf) * 1e-6;
+                                    let Mw = M_val - M_ov;
+                                    html += `<div style="margin-left:25px; margin-bottom:12px;">Vì <i>M</i> > <i>M<sub>f</sub></i> &rarr; Trục trung hòa nằm trong sườn dầm.</div>`;
+                                    html += `<div style="margin-left:25px; margin-bottom:8px;">+ Mô men do phần cánh nằm ngoài mép sườn chịu: <i>M<sub>ov</sub></i> = ${M_ov.toFixed(1)} kNm.</div>`;
+                                    html += `<div style="margin-left:25px; margin-bottom:12px;">+ Mô men còn lại do sườn chịu: <i>M<sub>w</sub></i> = ${Mw.toFixed(1)} kNm.</div>`;
+                                    
+                                    let am_w = (Mw * 1e6) / (m.Rb * b * h0 * h0);
+                                    let zeta_w = 0.5 * (1 + Math.sqrt(Math.max(0, 1 - 2 * am_w)));
+                                    let As_w = (Mw * 1e6) / (m.Rs * zeta_w * h0);
+                                    let As_f = (m.Rb * (bf - b) * hf) / m.Rs;
+                                    let As_calc_T = As_w + As_f;
+
+                                    html += `<div style="margin-left:25px; margin-bottom:12px;"><i>&alpha;<sub>m,w</sub></i> = ${am_w.toFixed(3)} &rarr; <i>&zeta;<sub>w</sub></i> = ${zeta_w.toFixed(3)}.</div>`;
+                                    html += `<div style="margin-left:25px; margin-bottom:12px;"><i>A<sub>s,cal</sub></i> = <i>A<sub>s,w</sub> + A<sub>s,f</sub></i> = ${As_w.toFixed(1)} + ${As_f.toFixed(1)} = <b>${As_calc_T.toFixed(1)} (mm<sup>2</sup>)</b>.</div>`;
+                                    
+                                    let mu = (As_calc_T / (b * h0)) * 100;
+                                    let statusColor = area >= (As_calc_T * 0.99) ? "#198754" : "#c00";
+                                    let statusText = area >= (As_calc_T * 0.99) ? "Đạt yêu cầu" : "KHÔNG ĐỦ DIỆN TÍCH (THIẾU)";
+                                    
+                                    html += `<div style="margin-left:25px; margin-bottom:15px; font-weight:bold;">Kiểm tra hàm lượng cốt thép:</div>
+                                    <div style="margin-left:25px; margin-bottom:12px; display:flex; align-items:center;">
+                                        <div style="margin-right:15px;"><i>&mu;</i> = </div>
+                                        <div style="text-align:center;">
+                                            <div style="border-bottom:1px solid #000; padding:0 10px;"><i>A<sub>s,cal</sub></i></div>
+                                            <div><i>bh<sub>0</sub></i></div>
+                                        </div>
+                                        <div style="margin:0 10px;"> &times; 100% = </div>
+                                        <div style="text-align:center;">
+                                            <div style="border-bottom:1px solid #000; padding:0 10px;">${As_calc_T.toFixed(1)}</div>
+                                            <div>${b} &times; ${h0}</div>
+                                        </div>
+                                        <div style="margin-left:15px;"> = <b>${mu.toFixed(2)}%</b> > <i>&mu;<sub>min</sub></i> = 0.1%</div>
+                                    </div>`;
+                                    html += `<div style="margin-left:25px; margin-top:15px; font-weight:bold; color:${statusColor};">&rArr; Kết luận: Chọn bố trí ${txt} có A<sub>s,chọn</sub> = <b>${area.toFixed(1)} mm<sup>2</sup></b> &rarr; ${statusText}.</div>
+                                    </div>`;
+                                    return html;
+                                }
+                            }
+
+                            let am = (M_val * 1e6) / (m.Rb * b_current * h0 * h0);
+                            html += `<div style="margin-left:25px; margin-bottom:15px; display:flex; align-items:center;">
+                                <div style="margin-right:15px;"><i>&alpha;<sub>m</sub></i> = </div>
+                                <div style="text-align:center;">
+                                    <div style="border-bottom:1px solid #000; padding:0 10px;"><i>M</i></div>
+                                    <div><i>R<sub>b</sub>bh<sub>0</sub><sup>2</sup></i></div>
+                                </div>
+                                <div style="margin:0 10px;"> = </div>
+                                <div style="text-align:center;">
+                                    <div style="border-bottom:1px solid #000; padding:0 10px;">${(M_val * 1e6).toFixed(0)}</div>
+                                    <div>${Rb} &times; ${b_current.toFixed(2)} &times; ${h0}<sup>2</sup></div>
+                                </div>
+                                <div style="margin-left:15px;"> = <b>${am.toFixed(3)}</b></div>
+                            </div>`;
+                            
+                            if (am <= aR) {
+                                let zeta = 0.5 * (1 + Math.sqrt(Math.max(0, 1 - 2 * am)));
+                                let As_calc_local = (M_val * 1e6) / (m.Rs * zeta * h0);
+                                html += `<div style="margin-left:25px; margin-bottom:12px;"><i>&alpha;<sub>m</sub></i> = ${am.toFixed(3)} < <i>&alpha;<sub>R</sub></i> = ${aR.toFixed(3)} &rarr; Thỏa mãn điều kiện hạn chế.</div>`;
+                                html += `<div style="margin-left:25px; margin-bottom:15px;"><i>&zeta;</i> = 0.5 &times; (1 + &radic;<span style="border-top:1px solid #000;">1 - 2 &times; ${am.toFixed(3)}</span>) = <b>${zeta.toFixed(3)}</b></div>`;
+                                
+                                html += `<div style="margin-left:25px; margin-bottom:20px; display:flex; align-items:center;">
+                                    <div style="margin-right:15px;"><i>A<sub>s,cal</sub></i> = </div>
+                                    <div style="text-align:center;">
+                                        <div style="border-bottom:1px solid #000; padding:0 10px;"><i>M</i></div>
+                                        <div><i>R<sub>s</sub>&zeta;h<sub>0</sub></i></div>
+                                    </div>
+                                    <div style="margin:0 10px;"> = </div>
+                                    <div style="text-align:center;">
+                                        <div style="border-bottom:1px solid #000; padding:0 10px;">${(M_val * 1e6).toFixed(0)}</div>
+                                        <div>${Rs} &times; ${zeta.toFixed(3)} &times; ${h0}</div>
+                                    </div>
+                                    <div style="margin-left:15px;"> = <b>${As_calc_local.toFixed(1)} (mm<sup>2</sup>)</b></div>
+                                </div>`;
+
+                                let mu = (As_calc_local / (b * h0)) * 100;
+                                html += `<div style="margin-left:25px; margin-bottom:15px; font-weight:bold;">Kiểm tra hàm lượng cốt thép:</div>
+                                <div style="margin-left:25px; margin-bottom:15px; display:flex; align-items:center;">
+                                    <div style="margin-right:15px;"><i>&mu;</i> = </div>
+                                    <div style="text-align:center;">
+                                        <div style="border-bottom:1px solid #000; padding:0 10px;"><i>A<sub>s,cal</sub></i></div>
+                                        <div><i>bh<sub>0</sub></i></div>
+                                    </div>
+                                    <div style="margin:0 10px;"> &times; 100% = </div>
+                                    <div style="text-align:center;">
+                                        <div style="border-bottom:1px solid #000; padding:0 10px;">${As_calc_local.toFixed(1)}</div>
+                                        <div>${b} &times; ${h0}</div>
+                                    </div>
+                                    <div style="margin-left:15px;"> = <b>${mu.toFixed(2)}%</b> > <i>&mu;<sub>min</sub></i> = 0.1%</div>
+                                </div>`;
+                                
+                                let statusColor = area >= As_calc_local * 0.99 ? "#198754" : "#c00";
+                                let statusText = area >= As_calc_local * 0.99 ? "Đạt yêu cầu" : "KHÔNG ĐỦ DIỆN TÍCH (THIẾU)";
+                                html += `<div style="margin-left:25px; margin-top:15px; font-weight:bold; color:${statusColor};">&rArr; Kết luận: Chọn bố trí ${txt} có A<sub>s,chọn</sub> = <b>${area.toFixed(1)} mm<sup>2</sup></b> &rarr; ${statusText}.</div>`;
+                            } else {
+                                 html += `<div style="margin-left:25px; margin-bottom:12px; color:#c00;">Vì <i>&alpha;<sub>m</sub></i> > <i>&alpha;<sub>R</sub></i> &rarr; Cần tính toán theo cốt kép hoặc tăng tiết diện bê tông.</div>`;
+                            }
+                            html += `</div>`;
+                            return html;
+                        };
 
                     let Qmax = 0.3 * m.Rb * b * h0 / 1000;
 
@@ -3917,13 +4163,180 @@
                     - Vật liệu: Bê tông ${data.conc} (<i>R<sub>b</sub></i> = ${Rb} MPa, <i>R<sub>bt</sub></i> = ${m.Rbt.toFixed(2)} MPa); Thép dọc ${data.steel} (<i>R<sub>s</sub></i> = ${Rs} MPa); Thép đai ${data.stirrup_steel}.<br>
                     - <i>b</i> = ${b} mm, <i>h</i> = ${h} mm, <i>a</i> = ${a} mm &rarr; <i>h<sub>0</sub></i> = ${h0} mm. <i>&alpha;<sub>R</sub></i> = ${aR.toFixed(3)}.</div>
                     
-                    ${renderFlexure(data.mpos, "Nhịp (Lớp dưới)", res.pos.As_req, tPos.txt, tPos.area)}
-                    ${renderFlexure(data.mneg, "Gối (Lớp trên)", res.neg.As_req, tNeg.txt, tNeg.area)}
+                    <div style="margin-bottom:10px;"><b>2. Tính toán cốt thép chịu mô men uốn:</b></div>
+                    
+                    ${renderFlexure(data.m_left, "Gối Trái (Lớp trên)", res.left.As_req, tLeft.txt, tLeft.area)}
+                    ${renderFlexure(data.mpos, "Nhịp (Lớp dưới)", res.pos.As_req, tPos.txt, tPos.area, true)}
+                    ${renderFlexure(data.m_right, "Gối Phải (Lớp trên)", res.right.As_req, tRight.txt, tRight.area)}
 
-                    <div style="margin-bottom:10px;"><b>2. Tính toán Cốt đai chịu cắt (Q = ${data.q} kN):</b></div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Khả năng chịu nén của bụng dầm: <i>Q<sub>max</sub></i> = 0.3 &times; <i>R<sub>b</sub></i> &times; <i>b</i> &times; <i>h<sub>0</sub></i> = ${(Qmax).toFixed(1)} kN.</div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Vì <i>Q</i> &le; <i>Q<sub>max</sub></i> &rarr; Kích thước tiết diện đủ khả năng chống phá hoại nén nghiêng.</div>
-                    <div style="margin-left:25px; margin-bottom:15px; font-weight:bold;">&rArr; Bố trí cốt đai: ${res.shear.txt}.</div>
+                    <div style="margin-bottom:10px;"><b>3. Tính toán cốt thép đai chịu cắt:</b></div>
+                    <div style="margin-left:25px; margin-bottom:12px;">
+                        - Lực cắt nguy hiểm nhất: <i>Q<sub>max</sub></i> = <b>${data.v_shear} kN</b> (=${data.v_shear * 1000} N).<br>
+                        - Chiều dài hình chiếu vết nứt nghiêng <i>c<sub>q</sub></i>:<br>
+                        &nbsp;&nbsp;<i>c<sub>q</sub></i> = min(2.5<i>h<sub>0</sub></i> ; 0.25<i>L</i>) = min(2.5 &times; ${h0} ; 0.25 &times; ${data.l_span * 1000}) = <b>${res.shear.cq.toFixed(0)} mm</b>.
+                    </div>
+
+                    <div style="margin-left:25px; margin-bottom:12px;">
+                        <b>a. Xác định tải trọng quy đổi phân bố đều <i>q<sub>1</sub></i>:</b><br>
+                        <div style="margin-top:10px;">
+                            - Trọng lượng bản thân dầm: <i>g<sub>k2</sub></i> = <i>b &times; h &times; &gamma;<sub>BTCT</sub> &times; &gamma;<sub>f</sub></i> = ${b/1000} &times; ${h/1000} &times; 25 &times; 1.1 = <b>${res.shear.g_sw.toFixed(2)} kN/m</b>.<br>
+                            - Tải trọng tường: <i>g<sub>l2</sub></i> = <b>${res.shear.g_wall} kN/m</b>.<br>
+
+                            <div style="display:flex; align-items:center; margin:10px 0;">
+                                <div style="margin-right:15px;">- Tĩnh tải sàn quy đổi: <i>g<sub>s</sub></i> = </div>
+                                <div style="text-align:center;">
+                                    <div style="border-bottom:1px solid #000; padding:0 10px;"><i>g<sub>s,max</sub> &times; c<sub>q</sub></i></div>
+                                    <div>2 &times; <i>a<sub>q</sub></i></div>
+                                </div>
+                                <div style="margin:0 10px;"> = </div>
+                                <div style="text-align:center;">
+                                    <div style="border-bottom:1px solid #000; padding:0 10px;">${res.shear.g_s_max} &times; ${res.shear.cq.toFixed(0)}</div>
+                                    <div>2 &times; ${res.shear.aq}</div>
+                                </div>
+                                <div style="margin-left:15px;"> = <b>${res.shear.gs.toFixed(2)} kN/m</b></div>
+                            </div>
+                            &rArr; Tổng tĩnh tải: <b><i>g</i> = <i>g<sub>k2</sub> + g<sub>l2</sub> + g<sub>s</sub></i> = ${res.shear.g_sw.toFixed(2)} + ${res.shear.g_wall} + ${res.shear.gs.toFixed(2)} = ${res.shear.g.toFixed(2)} kN/m</b>.<br>
+                            
+                            <div style="display:flex; align-items:center; margin:15px 0;">
+                                <div style="margin-right:15px;">- Hoạt tải sàn quy đổi: <i>p</i> = </div>
+                                <div style="text-align:center;">
+                                    <div style="border-bottom:1px solid #000; padding:0 10px;"><i>p<sub>s,max</sub> &times; c<sub>q</sub></i></div>
+                                    <div>2 &times; <i>a<sub>q</sub></i></div>
+                                </div>
+                                <div style="margin:0 10px;"> = </div>
+                                <div style="text-align:center;">
+                                    <div style="border-bottom:1px solid #000; padding:0 10px;">${res.shear.p_s_max} &times; ${res.shear.cq.toFixed(0)}</div>
+                                    <div>2 &times; ${res.shear.aq}</div>
+                                </div>
+                                <div style="margin-left:15px;"> = <b>${res.shear.p.toFixed(2)} kN/m</b></div>
+                            </div>
+                            &rArr; Tải trọng quy đổi tính toán: <b><i>q<sub>1</sub></i> = <i>g</i> + 0.5 &times; <i>p</i> = ${res.shear.g.toFixed(2)} + 0.5 &times; ${res.shear.p.toFixed(2)} = ${res.shear.q1.toFixed(2)} kN/m</b>.
+                        </div>
+                    </div>
+
+                    <div style="margin-left:25px; margin-bottom:12px;">
+                        <b>b. Kiểm tra tiết diện theo điều kiện:</b><br>
+                        <div style="display:flex; align-items:center; margin:10px 0;">
+                            <div style="margin-right:15px;"><i>Q<sub>b,max</sub></i> = 2.5 &times; <i>R<sub>bt</sub> &times; b &times; h<sub>0</sub></i> = </div>
+                            <div>2.5 &times; ${m.Rbt.toFixed(2)} &times; ${b} &times; ${h0} = <b>${res.shear.Q_b_max.toFixed(0)} N</b>.</div>
+                        </div>
+                        <div style="font-weight:bold; color:${data.v_shear * 1000 <= res.shear.Q_b_max ? '#198754' : '#c00'}">
+                            &rArr; ${data.v_shear * 1000 <= res.shear.Q_b_max ? 'Thỏa mãn điều kiện nén bụng (Q < Q<sub>b,max</sub>).' : 'KHÔNG THỎA MÃN!'}
+                        </div>
+                    </div>
+
+                    <div style="margin-left:25px; margin-bottom:12px;">
+                        <b>b. Tính toán các trị số trung gian:</b><br>
+                        <div style="display:flex; align-items:center; margin-top:8px;">
+                            <div style="margin-right:15px;"><i>M<sub>b</sub></i> = 1.5<i>R<sub>bt</sub>bh<sub>0</sub><sup>2</sup></i> = </div>
+                            <div>1.5 &times; ${m.Rbt.toFixed(1)} &times; ${b} &times; ${h0}<sup>2</sup> = <b>${res.shear.Mb.toFixed(0)} Nmm</b>.</div>
+                        </div>
+                        <div style="display:flex; align-items:center; margin-top:10px;">
+                            <div style="margin-right:15px;"><i>Q<sub>b,min</sub></i> = 0.5<i>R<sub>bt</sub>bh<sub>0</sub></i> = </div>
+                            <div>0.5 &times; ${m.Rbt.toFixed(1)} &times; ${b} &times; ${h0} = <b>${res.shear.Qb_min.toFixed(0)} N</b>.</div>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <b>Kiểm tra điều kiện tính toán cốt đai:</b><br>
+                            <i>Q<sub>max</sub></i> = ${data.v_shear * 1000} N 
+                            ${res.shear.cond_calc ? '>' : '&le;'} 
+                            2&radic;<span style="border-top:1px solid #000;"><i>M<sub>b</sub>q<sub>1</sub></i></span> = 
+                            2&radic;<span style="border-top:1px solid #000;">${res.shear.Mb.toFixed(0)} &times; ${res.shear.q1}</span> = 
+                            <b>${(2 * Math.sqrt(res.shear.Mb * res.shear.q1)).toFixed(1)} N</b>.<br>
+                            &rArr; ${res.shear.cond_calc ? 'Cốt đai được xác định theo tính toán.' : 'Cốt đai được đặt theo cấu tạo.'}
+                        </div>
+                    </div>
+
+                    ${res.shear.cond_calc ? `
+                    <div style="margin-left:25px; margin-bottom:12px;">
+                        <b>c. Tính toán cường độ cốt đai <i>q<sub>sw</sub></i>:</b><br>
+                        <div style="display:flex; align-items:center; margin:10px 0;">
+                            <div style="margin-right:15px;">- <i>q<sub>sw1</sub></i> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;"><i>Q<sub>max</sub><sup>2</sup> - 4M<sub>b</sub>q<sub>1</sub></i></div>
+                                <div>3<i>M<sub>b</sub></i></div>
+                            </div>
+                            <div style="margin:0 10px;"> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;">${(data.v_shear * 1000)**2} - 4&times;${res.shear.Mb.toFixed(0)}&times;${res.shear.q1}</div>
+                                <div>3 &times; ${res.shear.Mb.toFixed(0)}</div>
+                            </div>
+                            <div style="margin-left:15px;"> = <b>${res.shear.qsw1.toFixed(2)} N/mm</b></div>
+                        </div>
+                        <div style="display:flex; align-items:center; margin:10px 0;">
+                            <div style="margin-right:15px;">- <i>q<sub>sw2</sub></i> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;"><i>Q<sub>max</sub> - 2&radic;<span style="border-top:1px solid #000;">M<sub>b</sub>q<sub>1</sub></span></i></div>
+                                <div>1.5<i>h<sub>0</sub></i></div>
+                            </div>
+                            <div style="margin:0 10px;"> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;">${data.v_shear * 1000} - 2&radic;<span style="border-top:1px solid #000;">${res.shear.Mb.toFixed(0)}&times;${res.shear.q1}</span></div>
+                                <div>1.5 &times; ${h0}</div>
+                            </div>
+                            <div style="margin-left:15px;"> = <b>${res.shear.qsw2.toFixed(2)} N/mm</b></div>
+                        </div>
+                        <div style="display:flex; align-items:center; margin:10px 0;">
+                            <div style="margin-right:15px;">- <i>q<sub>sw3</sub></i> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;"><i>Q<sub>max</sub> - Q<sub>b,min</sub> - 3q<sub>1</sub>h<sub>0</sub></i></div>
+                                <div>1.5<i>h<sub>0</sub></i></div>
+                            </div>
+                            <div style="margin:0 10px;"> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;">${data.v_shear * 1000} - ${res.shear.Qb_min.toFixed(0)} - 3&times;${res.shear.q1}&times;${h0}</div>
+                                <div>1.5 &times; ${h0}</div>
+                            </div>
+                            <div style="margin-left:15px;"> = <b>${res.shear.qsw3.toFixed(2)} N/mm</b></div>
+                        </div>
+                        <div style="margin-top:10px;">
+                            &rArr; <i>q<sub>sw,calc</sub></i> = max(<i>q<sub>sw1</sub>, q<sub>sw2</sub>, q<sub>sw3</sub></i>) = <b>${res.shear.qsw_calc.toFixed(2)} N/mm</b>.
+                        </div>
+                    </div>` : ''}
+
+                    <div style="margin-left:25px; margin-bottom:15px;">
+                        <b>d. Chọn và bố trí cốt đai:</b><br>
+                        - Chọn cốt đai 2 nhánh: <b>Φ${res.shear.best.d}</b> (<i>A<sub>sw</sub></i> = ${res.shear.best.Asw.toFixed(1)} mm<sup>2</sup>).<br>
+                        
+                        <div style="margin-top:10px;"><b>1. Khoảng cách tính toán <i>s<sub>tt</sub></i>:</b></div>
+                        <div style="display:flex; align-items:center; margin:10px 0;">
+                            <div style="margin-right:15px;"><i>s<sub>tt</sub></i> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;"><i>R<sub>sw</sub>A<sub>sw</sub></i></div>
+                                <div><i>q<sub>sw</sub></i></div>
+                            </div>
+                            <div style="margin:0 10px;"> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;">${res.shear.Rsw} &times; ${res.shear.best.Asw.toFixed(1)}</div>
+                                <div>${res.shear.qsw_final.toFixed(2)}</div>
+                            </div>
+                            <div style="margin-left:15px;"> = <b>${res.shear.best.sCalculated.toFixed(1)} mm</b></div>
+                        </div>
+
+                        <div style="margin-top:10px;"><b>2. Khoảng cách tối đa theo khả năng chịu cắt bê tông <i>s<sub>max</sub></i>:</b></div>
+                        <div style="display:flex; align-items:center; margin:10px 0;">
+                            <div style="margin-right:15px;"><i>s<sub>max</sub></i> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;"><i>R<sub>bt</sub>bh<sub>0</sub><sup>2</sup></i></div>
+                                <div><i>Q<sub>max</sub></i></div>
+                            </div>
+                            <div style="margin:0 10px;"> = </div>
+                            <div style="text-align:center;">
+                                <div style="border-bottom:1px solid #000; padding:0 10px;">${m.Rbt.toFixed(1)} &times; ${b} &times; ${h0}<sup>2</sup></div>
+                                <div>${data.v_shear * 1000}</div>
+                            </div>
+                            <div style="margin-left:15px;"> = <b>${res.shear.sMax.toFixed(1)} mm</b></div>
+                        </div>
+
+                        <div style="margin-top:10px;"><b>3. Khoảng cách đai cấu tạo <i>s<sub>ct</sub></i>:</b></div>
+                        <div style="margin-left:5px; margin-top:5px;">
+                            <i>s<sub>ct</sub></i> = min(0.5<i>h<sub>0</sub></i> ; 300 mm) = min(0.5 &times; ${h0} ; 300) = <b>${res.shear.sCt_goi.toFixed(0)} mm</b>.
+                        </div>
+
+                        <div style="margin-top:15px; font-weight:bold;">
+                            &rArr; Chọn khoảng cách cốt đai <i>s</i> &le; min(<i>s<sub>tt</sub> , s<sub>max</sub> , s<sub>ct</sub></i>) = <b>${Math.min(res.shear.best.sCalculated, res.shear.sMax, res.shear.sCt_goi).toFixed(1)} mm</b>.
+                        </div>
+                        <div style="margin-top:10px; font-weight:bold; color:#198754;">&rArr; Kết luận bố trí: ${res.shear.txt}.</div>
+                    </div>
                 </div><br style="clear: both;" />`;
                     document.getElementById('report-paper').insertAdjacentHTML('beforeend', html);
                     alert('Đã thêm Thuyết minh Dầm (Định dạng đại số 100% an toàn)!');
