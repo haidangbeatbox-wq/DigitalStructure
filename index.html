@@ -224,6 +224,42 @@
             border-color: var(--primary);
             background: rgba(13, 110, 253, 0.05);
         }
+
+        /* Responsive Report Paper for Mobile */
+        @media (max-width: 768px) {
+            #r-trace {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 0 !important;
+            }
+            #report-paper {
+                min-width: 800px; /* Giữ chiều rộng tối thiểu để không bị bóp méo bảng */
+                padding: 15px !important;
+                font-size: 12pt !important;
+                transform-origin: top left;
+            }
+            #report-toolbar {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            #report-toolbar button {
+                flex: 1;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Tối ưu hóa bảng trong thuyết minh */
+        #report-paper table {
+            width: 100% !important;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        #report-paper table th, #report-paper table td {
+            border: 1px solid #000 !important;
+            padding: 4px 6px !important;
+            vertical-align: middle;
+        }
     </style>
 </head>
 
