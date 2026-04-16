@@ -1475,7 +1475,7 @@
                     const DIA_LIST = is_col ? [16, 18, 20, 22, 25, 28, 32] : [14, 16, 18, 20, 22, 25, 28, 32];
                     let all_opts = [];
 
-                    const addOpt = (txt, n, d_max, AsP, type) => {
+                    const addOpt = (txt, n, d_max, AsP, type, d1_val, d2_val) => {
                         // 1. Kiểm tra diện tích (Chống việc chọn thiếu thép)
                         if (AsP < As_req * 0.99) return; 
 
@@ -1496,7 +1496,8 @@
                         all_opts.push({
                             txt, AsP, pass,
                             msg: pass ? type : `Quá dày (${type})`,
-                            score: passPenalty + areaScore + patternScore + typeScore + (n * 5)
+                            score: passPenalty + areaScore + patternScore + typeScore + (n * 5),
+                            d1: d1_val, d2: d2_val
                         });
                     };
 
@@ -1506,7 +1507,7 @@
                         let n_min = Math.ceil(As_req / a_bar);
                         for(let n = n_min; n <= n_min + 3; n++) {
                             if (n < (is_col ? 4 : 2)) continue;
-                            addOpt(`${n}Ø${d}`, n, d, n * a_bar, "1 lớp");
+                            addOpt(`${n}Ø${d}`, n, d, n * a_bar, "1 lớp", d, d);
                         }
                     }
 
@@ -1517,7 +1518,7 @@
                         let patterns = is_col ? [[4, 2], [4, 4], [2, 2]] : [[2, 1], [2, 2], [3, 2], [2, 3], [4, 2]];
                         for (let [n1, n2] of patterns) {
                             let AsP = n1 * a1 + n2 * a2;
-                            addOpt(`${n1}Ø${d1} + ${n2}Ø${d2}`, n1 + n2, Math.max(d1, d2), AsP, "Liên hợp");
+                            addOpt(`${n1}Ø${d1} + ${n2}Ø${d2}`, n1 + n2, Math.max(d1, d2), AsP, "Liên hợp", d1, d2);
                         }
                     }
 
@@ -1527,7 +1528,7 @@
                             let a_bar = Math.PI * d * d / 4;
                             let n_total = Math.ceil(As_req_2layer / a_bar);
                             if (n_total < 4) n_total = 4;
-                            addOpt(`${n_total}Ø${d}`, n_total, d, n_total * a_bar, "2 lớp");
+                            addOpt(`${n_total}Ø${d}`, n_total, d, n_total * a_bar, "2 lớp", d, d);
                         }
                     }
 
@@ -1887,6 +1888,7 @@
                     let props = this.proposeRebar(res.As_req, b, d.h, res.As_req * 1.05, 12, true);
                     let prop = props[0];
                     let shear = this.calcShear(d.q, b, d.h, h0, m.Rb, m.Rbt, d.stirrup_steel, 0, 0, 0, 1000, d.l0 * 1000);
+                    shear.Q = parseFloat(d.q) || 0;
 
                     return { 
                         trace: trace + shear.trace, 
@@ -4873,6 +4875,23 @@
                             }).join('')}
                         </tbody>
                     </table>
+
+                    <div style="margin-top:20px; margin-bottom:12px;"><b>d) Tính toán và chọn cốt đai theo cấu tạo:</b></div>
+                    <div style="margin-left:15px; margin-bottom:18px;">
+                        - Đường kính cốt đai <i>Ø<sub>sw</sub></i> phải thỏa mãn: 
+                        <i>Ø<sub>sw</sub></i> &ge; max(<i>Ø<sub>max</sub></i>/4; 5mm) = max(${res.prop.d1}/4; 5) = <b>${Math.max(res.prop.d1/4, 5).toFixed(1)} mm</b>.<br>
+                        &rArr; Chọn cốt đai thép nhóm CB240-T có đường kính <b>Ø${res.shear.best.d}</b>.<br><br>
+                        
+                        - Khoảng cách cốt đai <i>s</i>:<br>
+                        <div style="margin-left:15px;">
+                            + Trong đoạn nối chồng cốt thép dọc: 
+                            <i>s</i> &le; min(10<i>Ø<sub>min</sub></i>; 500mm) = min(10 &times; ${res.prop.d1}; 500) = <b>${Math.min(10 * res.prop.d1, 500)} mm</b>.<br>
+                            &rarr; Chọn <i>s</i> = ${res.shear.best.s1} mm.<br>
+                            + Các đoạn còn lại: 
+                            <i>s</i> &le; min(15<i>Ø<sub>min</sub></i>; 500mm) = min(15 &times; ${res.prop.d1}; 500) = <b>${Math.min(15 * res.prop.d1, 500)} mm</b>.<br>
+                        </div>
+                        <div style="margin-top:10px;">&rArr; Để thuận tiện thi công và đảm bảo an toàn, chọn bước đai cho toàn cột: <b>Ø${res.shear.best.d} a${res.shear.best.s1}/a${res.shear.best.s2}</b></div>
+                    </div>
                     
                     <div style="margin-top:20px; font-weight:bold; border-top: 1pt solid #000; padding-top: 10px;">
                         &rArr; CHỐT THÉP CỘT: ${textChon} (${asChon.toFixed(1)} mm²)
@@ -5202,13 +5221,29 @@
                     alert('Đã thêm ' + title + ' vào Thuyết minh!');
                 },
                 exportWord() {
-                    let content = document.getElementById('report-paper').innerHTML;
+                    let container = document.getElementById('report-paper');
+                    let content = container.innerHTML;
                     
-                    // Fix fractions for Word: Convert flexbox pattern to borderless inline-table
-                    content = content.replace(/<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">\s*<span style="border-bottom:1px solid #000; padding:0 3px;">(.*?)<\/span>\s*<span>(.*?)<\/span>\s*<\/span>/gi, 
-                        '<table border="0" cellspacing="0" cellpadding="0" style="display:inline-table; border-collapse:collapse; vertical-align:middle; text-align:center; margin:0 2px; border:none; width:auto !important;"><tr><td style="border-bottom:0.5pt solid black; border-top:none; border-left:none; border-right:none; padding:0 3px; font-style:italic; text-align:center;">$1</td></tr><tr><td style="border:none; padding:0 3px; font-style:italic; text-align:center;">$2</td></tr></table>');
+                    // Xử lý thông minh: Tìm toàn bộ cụm biểu thức chứa phân số để đưa vào chung 1 bảng (tránh nhảy dòng)
+                    // Pattern: TextPrefix [FractionSpan] TextSuffix
+                    content = content.replace(/([^>\n]+?)(<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">\s*<span style="border-bottom:1px solid #000; padding:0 3px;">(.*?)<\/span>\s*<span>(.*?)<\/span>\s*<\/span>)([^<\n]*)/gi, 
+                        function(match, prefix, fullSpan, num, den, suffix) {
+                            return `<table border="0" cellspacing="0" cellpadding="0" style="display:inline-table; border-collapse:collapse; vertical-align:middle; border:none; width:auto !important; margin: 5px 0;">
+                                <tr>
+                                    <td style="vertical-align:middle; white-space:nowrap; padding-right:5px; border:none;">${prefix}</td>
+                                    <td style="vertical-align:middle; border:none;">
+                                        <table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse; text-align:center; border:none; width:auto !important;">
+                                            <tr><td style="border-bottom:0.5pt solid black; padding:0 3px; font-style:italic; text-align:center; border-top:none; border-left:none; border-right:none;">${num}</td></tr>
+                                            <tr><td style="padding:0 3px; font-style:italic; text-align:center; border:none;">${den}</td></tr>
+                                        </table>
+                                    </td>
+                                    <td style="vertical-align:middle; white-space:nowrap; padding-left:5px; border:none;">${suffix}</td>
+                                </tr>
+                            </table>`;
+                        }
+                    );
 
-                    // Simplify icons and arrows
+                    // Xử lý các icon và ký hiệu
                     content = content.replace(/&rarr;/gi, ' → ');
                     content = content.replace(/&rArr;/gi, ' ⇒ ');
 
@@ -5230,7 +5265,7 @@
                     let blob = new Blob(['\ufeff', html], { type: 'application/msword' });
                     let downloadLink = document.createElement("a");
                     downloadLink.href = URL.createObjectURL(blob);
-                    downloadLink.download = "Thuyet_Minh_Final.doc";
+                    downloadLink.download = "Thuyet_Minh_Chuan.doc";
                     document.body.appendChild(downloadLink);
                     downloadLink.click();
                     document.body.removeChild(downloadLink);
