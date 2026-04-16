@@ -631,15 +631,31 @@
                             <div class="mt-4">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <strong class="text-warning"><i class="fas fa-layer-group"></i> Địa tầng tính lún (TCVN 9362:2012)</strong>
-                                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="FndUI.addSoilRow()">+ Thêm lớp đất</button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-white-50 small">MNN cách mặt đất (m):</span>
+                                        <input type="number" name="mnn" class="form-control form-control-sm bg-dark text-info border-secondary text-center" style="width:70px" value="2" step="0.1" oninput="UI.calc()">
+                                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="FndUI.addSoilRow()">+ Thêm lớp đất</button>
+                                    </div>
                                 </div>
-                                <div id="soil-layers-fnd" class="mb-3"></div>
+                                <div id="soil-layers-fnd" class="mb-3" style="min-width: 1000px; overflow-x: auto;">
+                                    <div class="row g-1 mb-2 text-white-50 small fw-bold text-center" style="min-width: 1000px;">
+                                        <div style="width: 15%;">Tên đất</div>
+                                        <div style="width: 7%;">h(m)</div>
+                                        <div style="width: 8%;">&gamma;(kN/m&sup3;)</div>
+                                        <div style="width: 8%;">&phi;(&deg;)</div>
+                                        <div style="width: 7%;">c(kPa)</div>
+                                        <div style="width: 8%;">E(kPa)</div>
+                                        <div style="width: 7%;">I<small>L</small></div>
+                                        <div style="width: 8%;">e<small>100</small></div>
+                                        <div style="width: 8%;">e<small>200</small></div>
+                                        <div style="width: 8%;">e<small>300</small></div>
+                                        <div style="width: 8%;">e<small>400</small></div>
+                                        <div style="width: 8%;"></div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <button type="button" class="btn btn-success w-100 mt-2 fw-bold"
-                                onclick="const fd = new FormData(document.getElementById('f-fnd')); let d = Object.fromEntries(fd); d['s_name[]']=fd.getAll('s_name[]'); d['s_h[]']=fd.getAll('s_h[]'); d['s_gamma[]']=fd.getAll('s_gamma[]'); d['s_e[]']=fd.getAll('s_e[]'); ReportEngine.addFound(d)">
-                                + Thêm Móng này vào Thuyết minh
-                            </button>
+
                         </form>
                     </div>
 
@@ -715,9 +731,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-info w-100 mt-2 fw-bold text-dark"
+                            <div id="pile-viz-container" class="mt-3"></div>
+                            <button type="button" class="btn btn-info w-100 mt-2 fw-bold text-dark shadow-sm"
                                 onclick="ReportEngine.addPileReport(Object.fromEntries(new FormData(document.getElementById('f-pile'))))">
-                                <i class="fas fa-file-invoice"></i> XUẤT THUYẾT MINH SỨC CHỊU TẢI CỌC (TCVN 10304:2014)
+                                <i class="fas fa-file-invoice me-2"></i> XUẤT THUYẾT MINH SỨC CHỊU TẢI CỌC (TCVN 10304:2014)
                             </button>
                         </form>
                     </div>
@@ -2610,17 +2627,25 @@
             if (typeof window.selBeamY === 'undefined') window.selBeamY = 0;
 
             const FndUI = {
-                addSoilRow(h = 2, gamma = 18, e = 15000, name = 'Lớp đất') {
+                addSoilRow(h = 2, gamma = 18, phi = 20, c = 10, e_val = 15000, il = 0.5, name = 'Lớp đất', e100=0.888, e200=0.854, e300=0.827, e400=0.814) {
                     const container = document.getElementById('soil-layers-fnd');
                     if (!container) return;
                     const div = document.createElement('div');
                     div.className = 'row g-1 mb-1 align-items-center soil-row-fnd';
+                    div.style.minWidth = '1000px';
                     div.innerHTML = `
-                        <div class="col-4"><input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" name="s_name[]" value="${name}" placeholder="Tên lớp"></div>
-                        <div class="col-2"><input type="number" class="form-control form-control-sm bg-dark text-info border-secondary text-center" name="s_h[]" value="${h}" step="0.1" placeholder="h(m)"></div>
-                        <div class="col-2"><input type="number" class="form-control form-control-sm bg-dark text-warning border-secondary text-center" name="s_gamma[]" value="${gamma}" step="0.1" placeholder="g"></div>
-                        <div class="col-3"><input type="number" class="form-control form-control-sm bg-dark text-success border-secondary text-center" name="s_e[]" value="${e}" step="100" placeholder="E(kPa)"></div>
-                        <div class="col-1"><button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="this.closest('.soil-row-fnd').remove(); UI.calc()"><i class="fas fa-times"></i></button></div>
+                        <div style="width: 15%;"><input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" name="s_name[]" value="${name}" oninput="UI.calc()"></div>
+                        <div style="width: 7%;"><input type="number" class="form-control form-control-sm bg-dark text-info border-secondary text-center" name="s_h[]" value="${h}" step="0.1" oninput="UI.calc()"></div>
+                        <div style="width: 8%;"><input type="number" class="form-control form-control-sm bg-dark text-warning border-secondary text-center" name="s_gamma[]" value="${gamma}" step="0.1" oninput="UI.calc()"></div>
+                        <div style="width: 8%;"><input type="number" class="form-control form-control-sm bg-dark text-success border-secondary text-center" name="s_phi[]" value="${phi}" step="0.1" oninput="UI.calc()"></div>
+                        <div style="width: 7%;"><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary text-center" name="s_c[]" value="${c}" step="0.1" oninput="UI.calc()"></div>
+                        <div style="width: 8%;"><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary text-center" name="s_e[]" value="${e_val}" step="10" oninput="UI.calc()"></div>
+                        <div style="width: 7%;"><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary text-center" name="s_il[]" value="${il}" step="0.01" oninput="UI.calc()"></div>
+                        <div style="width: 8%;"><input type="number" class="form-control form-control-sm bg-dark text-info border-secondary text-center" name="s_e100[]" value="${e100}" step="0.001" oninput="UI.calc()"></div>
+                        <div style="width: 8%;"><input type="number" class="form-control form-control-sm bg-dark text-info border-secondary text-center" name="s_e200[]" value="${e200}" step="0.001" oninput="UI.calc()"></div>
+                        <div style="width: 8%;"><input type="number" class="form-control form-control-sm bg-dark text-info border-secondary text-center" name="s_e300[]" value="${e300}" step="0.001" oninput="UI.calc()"></div>
+                        <div style="width: 8%;"><input type="number" class="form-control form-control-sm bg-dark text-info border-secondary text-center" name="s_e400[]" value="${e400}" step="0.001" oninput="UI.calc()"></div>
+                        <div style="width: 8%;" class="text-center"><button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="this.closest('.soil-row-fnd').remove(); UI.calc()"><i class="fas fa-times"></i></button></div>
                     `;
                     container.appendChild(div);
                 }
@@ -3453,7 +3478,16 @@
                                     <div class="col-md-7"><b>As_req:</b> <span class="val">${res.AsB.toFixed(1)} mm²</span></div>
                                     ${getManualUI(res.AsB)}
                                 </div>
-                            </div>`;
+                            </div>
+                            <div id="fnd-viz-container" class="mb-3"></div>`;
+                            
+                            // Visualize Footing
+                            if (typeof Visualizer !== 'undefined') {
+                                setTimeout(() => {
+                                    Visualizer.drawFoundation('fnd-viz-container', parseFloat(data.l), parseFloat(data.b), parseFloat(data.h), parseFloat(data.a), parseFloat(data.bc), parseFloat(data.hc));
+                                }, 50);
+                            }
+                            
                             let btnFnd = document.getElementById('btn-report-fnd');
                             if (!btnFnd) { btnFnd = document.createElement('div'); btnFnd.id = 'btn-report-fnd'; document.getElementById('f-fnd').appendChild(btnFnd); }
                             btnFnd.innerHTML = '<button type="button" class="btn btn-success btn-sm w-100 mt-3 d-print-none" onclick="ReportEngine.addFound(window.lastCalcData)"><i class="fas fa-plus"></i> Thêm Móng này vào Thuyết minh</button>';
@@ -3478,6 +3512,13 @@
                                     <div class="d-flex justify-content-between"><span>Sức kháng thân Qs:</span> <span class="text-info">${res.Qs.toFixed(1)} kN</span></div>
                                 </div>
                             </div>`;
+                            
+                            // Visualize Pile
+                            if (typeof Visualizer !== 'undefined') {
+                                setTimeout(() => {
+                                    Visualizer.drawPile('pile-viz-container', data, res);
+                                }, 50);
+                            }
                         } else if (data.type === 'load') {
                             res = Engine.loads(data);
                             html = `
@@ -5094,48 +5135,263 @@
                 },
                 addFound(data) {
                     if (!data) return;
-                    let m = Engine.getMat(data.conc, data.steel);
-                    let res = Engine.foundation(data);
-                    let A = (data.l / 1000) * (data.b / 1000);
-                    let h0 = data.h - data.a;
+                    
+                    // Dự phòng: Nếu data truyền vào thiếu mảng địa tầng, lấy trực tiếp từ form
+                    if (!data.s_name || !data.s_name.length) {
+                        const fd = new FormData(document.getElementById('f-fnd'));
+                        data.s_name = fd.getAll('s_name[]');
+                        data.s_h = fd.getAll('s_h[]');
+                        data.s_gamma = fd.getAll('s_gamma[]');
+                        data.s_phi = fd.getAll('s_phi[]');
+                        data.s_c = fd.getAll('s_c[]');
+                        data.s_e = fd.getAll('s_e[]');
+                        data.s_il = fd.getAll('s_il[]');
+                        data.s_e100 = fd.getAll('s_e100[]');
+                        data.s_e200 = fd.getAll('s_e200[]');
+                        data.s_e300 = fd.getAll('s_e300[]');
+                        data.s_e400 = fd.getAll('s_e400[]');
+                    }
 
-                    // Tính toán đâm thủng
-                    let cx = data.bc + h0, cy = data.hc + h0;
-                    let A_out = Math.max((data.l * data.b) - (cx * cy), 0);
-                    let Fpun = (res.p_max / 1e6) * A_out;
-                    let Fult = m.Rbt * 2 * (cx + cy) * h0 / 1000;
+                    let m = Engine.getMat(data.conc, data.steel);
+                    const ktc = 1.15;
+                    const Ntt = parseFloat(data.n) || 0;
+                    const Mxtt = parseFloat(data.mx) || 0;
+                    const Mytt = parseFloat(data.my) || 0;
+
+                    // Tính toán giá trị tiêu chuẩn
+                    const Ntc = Ntt / ktc;
+                    const Mxtc = Mxtt / ktc;
+                    const Mytc = Mytt / ktc;
 
                     let html = `
-                <div style="font-family:'Times New Roman', serif; font-size:13pt; line-height:1.6; color:#000; margin-bottom: 25px; page-break-inside: avoid;">
-                    <h3 style="text-align:center; font-weight:bold; text-transform:uppercase;">THUYẾT MINH TÍNH TOÁN MÓNG ĐƠN</h3>
-                    <div style="text-align:center; font-style:italic; margin-bottom:20px;">(Theo tiêu chuẩn TCVN 9362:2012 và TCVN 5574:2018)</div>
+                <div style="font-family:'Times New Roman', serif; font-size:13pt; line-height:1.6; color:#000; margin-bottom: 30px; page-break-inside: avoid; background:#fff;">
+                    <h2 style="text-align:center; font-weight:bold; text-transform:uppercase; margin-bottom:5px; font-size:16pt;">THUYẾT MINH TÍNH TOÁN KẾT CẤU</h2>
+                    <h2 style="text-align:center; font-weight:bold; text-transform:uppercase; margin-bottom:10px; font-size:16pt;">THUYẾT MINH TÍNH TOÁN MÓNG ĐƠN</h2>
+                    <div style="text-align:center; font-style:italic; margin-bottom:30px; font-size:12pt;">(Trình tự tính toán theo tiêu chuẩn TCVN 9362:2012)</div>
 
-                    <div style="font-weight:bold; text-transform:uppercase; font-size:14pt; margin-bottom:10px; border-bottom: 1pt solid #000; padding-bottom: 5px;">I. KIỂM TRA ÁP SUẤT ĐÁY MÓNG</div>
-                    <div style="margin-bottom:10px;">
-                    - Kích thước L&times;B = ${data.l}&times;${data.b} mm, Cao h = ${data.h} mm. Cột b<sub>c</sub>&times;h<sub>c</sub> = ${data.bc}&times;${data.hc} mm.<br>
-                    - <i>P<sub>tb</sub></i> = <i>N</i> / <i>A</i> + <i>&gamma;<sub>tb</sub></i> &times; <i>h<sub>df</sub></i> = ${data.n} / ${A.toFixed(2)} + 20 &times; ${(data.h / 1000).toFixed(2)} = ${((data.n / A) + 20 * (data.h / 1000)).toFixed(1)} kPa &le; <i>R<sub>tc</sub></i> (${data.rtc} kPa).<br>
-                    - <i>P<sub>max</sub></i> = <i>P<sub>tb</sub></i> + <i>M<sub>x</sub></i> / <i>W<sub>x</sub></i> + <i>M<sub>y</sub></i> / <i>W<sub>y</sub></i> = ${res.p_max.toFixed(1)} kPa &le; 1.2 &times; <i>R<sub>tc</sub></i> (${data.rtc * 1.2} kPa).<br>
-                    - <i>P<sub>min</sub></i> = ${res.p_min.toFixed(1)} kPa &ge; 0. <b>${res.ok_p ? '(ĐẠT ĐIỀU KIỆN ÁP SUẤT)' : '(CHƯA ĐẠT)'}</b></div>
-                    
-                    <div style="font-weight:bold; text-transform:uppercase; font-size:14pt; margin-bottom:10px; border-bottom: 1pt solid #000; padding-bottom: 5px;">II. KIỂM TRA ĐÂM THỦNG</div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Diện tích tháp xuyên: <i>A<sub>out</sub></i> = L&times;B - (b<sub>c</sub>+h<sub>0</sub>)(h<sub>c</sub>+h<sub>0</sub>) = ${(A_out / 1e6).toFixed(2)} m<sup>2</sup>.</div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Lực gây đâm thủng: <i>F<sub>pun</sub></i> = P<sub>max</sub> &times; A<sub>out</sub> = ${Fpun.toFixed(1)} kN.</div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Khả năng chống đâm thủng của BT: <i>F<sub>ult</sub></i> = R<sub>bt</sub> &times; 2(c<sub>x</sub>+c<sub>y</sub>) &times; h<sub>0</sub> = ${Fult.toFixed(1)} kN.</div>
-                    <div style="margin-left:25px; margin-bottom:15px; font-weight:bold;">&rArr; Kết luận: F<sub>pun</sub> ${res.ok_punch ? '&le;' : '&gt;'} F<sub>ult</sub> <b>${res.ok_punch ? '(Thỏa mãn điều kiện chống đâm thủng)' : '(Móng bị đâm thủng, cần tăng h)'}</b>.</div>
-
-                    <div style="font-weight:bold; text-transform:uppercase; font-size:14pt; margin-bottom:10px; border-bottom: 1pt solid #000; padding-bottom: 5px;">III. TÍNH TOÁN ĐỘ LÚN KẾT CẤU</div>
-                    <div style="padding:10px; border: 1px solid #ccc; background:#f9f9f9;">
-                        ${res.settlementTrace}
+                    <div style="font-weight:bold; text-transform:uppercase; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">I. VẬT LIỆU SỬ DỤNG</div>
+                    <div style="margin-left:20px; margin-bottom:20px;">
+                        - Bê tông cấp bền <b>${data.conc}</b>: có <i>R<sub>b</sub></i> = ${m.Rb} MPa; <i>R<sub>bt</sub></i> = ${m.Rbt} MPa; <i>E<sub>b</sub></i> = ${m.Eb} MPa.<br>
+                        - Cốt thép nhóm <b>${data.steel}</b>: có <i>R<sub>s</sub></i> = ${m.Rs} MPa; <i>E<sub>s</sub></i> = 200000 MPa.
                     </div>
 
-                    <div style="font-weight:bold; text-transform:uppercase; font-size:14pt; margin-top:20px; margin-bottom:10px; border-bottom: 1pt solid #000; padding-bottom: 5px;">IV. TÍNH TOÁN THÉP ĐÀI MÓNG</div>
-                    <div style="margin-left:25px; margin-bottom:5px;">- Phương Dài L: <i>A<sub>s,L</sub></i> = <i>M<sub>L</sub></i> / (<i>R<sub>s</sub></i> &times; 0.9 &times; <i>h<sub>0</sub></i>) = <b>${res.AsL.toFixed(1)} mm<sup>2</sup></b>.</div>
-                    <div style="margin-left:25px; margin-bottom:15px;">- Phương Ngắn B: <i>A<sub>s,B</sub></i> = <i>M<sub>B</sub></i> / (<i>R<sub>s</sub></i> &times; 0.9 &times; <i>h<sub>0</sub></i>) = <b>${res.AsB.toFixed(1)} mm<sup>2</sup></b>.</div>
-                </div><br style="clear: both;" />`;
+                    <div style="font-weight:bold; text-transform:uppercase; margin-bottom:10px; border-bottom:1px solid #000; padding-bottom:5px;">II. ĐỊA CHẤT CÔNG TRÌNH</div>
+                    <div style="margin-left:20px; margin-bottom:10px;">
+                        - Chiều sâu mực nước ngầm (so với mặt đất tự nhiên): <b>h<sub>MNN</sub> = ${data.mnn || 0} m</b>.
+                    </div>
+                    <div style="margin-left:20px; margin-bottom:25px;">
+                        <table style="width:100%; border-collapse: collapse; border: 1px solid black; text-align: center; font-size:11pt;">
+                            <tr style="background:#f2f2f2; font-weight:bold;">
+                                <td style="border: 1px solid black; padding:5px;">Lớp</td>
+                                <td style="border: 1px solid black; padding:5px;">Tên đất</td>
+                                <td style="border: 1px solid black; padding:5px;">h (m)</td>
+                                <td style="border: 1px solid black; padding:5px;">&gamma; <br>(kN/m&sup3;)</td>
+                                <td style="border: 1px solid black; padding:5px;">&phi; (&deg;)</td>
+                                <td style="border: 1px solid black; padding:5px;">c (kPa)</td>
+                                <td style="border: 1px solid black; padding:5px;">E (kPa)</td>
+                                <td style="border: 1px solid black; padding:5px;">I<sub>L</sub></td>
+                                <td style="border: 1px solid black; padding:5px;">e<sub>100</sub></td>
+                                <td style="border: 1px solid black; padding:5px;">e<sub>200</sub></td>
+                                <td style="border: 1px solid black; padding:5px;">e<sub>300</sub></td>
+                                <td style="border: 1px solid black; padding:5px;">e<sub>400</sub></td>
+                            </tr>
+                            ${(data['s_name'] || []).map((name, i) => {
+                                const h = data['s_h'] ? data['s_h'][i] : '-';
+                                const gamma = data['s_gamma'] ? data['s_gamma'][i] : '-';
+                                const phi = data['s_phi'] ? data['s_phi'][i] : '-';
+                                const c = data['s_c'] ? data['s_c'][i] : '-';
+                                const e_val = data['s_e'] ? data['s_e'][i] : '-';
+                                const il = data['s_il'] ? data['s_il'][i] : '-';
+                                const e100 = data['s_e100'] ? data['s_e100'][i] : '-';
+                                const e200 = data['s_e200'] ? data['s_e200'][i] : '-';
+                                const e300 = data['s_e300'] ? data['s_e300'][i] : '-';
+                                const e400 = data['s_e400'] ? data['s_e400'][i] : '-';
+                                return `
+                            <tr>
+                                <td style="border: 1px solid black; padding:5px;">${i + 1}</td>
+                                <td style="border: 1px solid black; padding:5px; text-align:left;">${name}</td>
+                                <td style="border: 1px solid black; padding:5px;">${h}</td>
+                                <td style="border: 1px solid black; padding:5px;">${gamma}</td>
+                                <td style="border: 1px solid black; padding:5px;">${phi}</td>
+                                <td style="border: 1px solid black; padding:5px;">${c}</td>
+                                <td style="border: 1px solid black; padding:5px;">${e_val}</td>
+                                <td style="border: 1px solid black; padding:5px;">${il}</td>
+                                <td style="border: 1px solid black; padding:5px;">${e100}</td>
+                                <td style="border: 1px solid black; padding:5px;">${e200}</td>
+                                <td style="border: 1px solid black; padding:5px;">${e300}</td>
+                                <td style="border: 1px solid black; padding:5px;">${e400}</td>
+                            </tr>`;
+                            }).join('')}
+                        </table>
+                    </div>
+
+                    <p><b>Bước 1: Xác định tải trọng tiêu chuẩn tác dụng xuống móng</b></p>
+                    <p style="margin-left:20px; font-style:italic;">Giá trị tiêu chuẩn được xác định theo công thức:</p>
+                    <div style="text-align:center; margin:25px 0;">
+                        <span style="display:inline-flex; align-items:center;">
+                            <span style="font-size:16pt; font-family: 'Times New Roman';">A<sup>tc</sup> = </span>
+                            <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin-left:10px;">
+                                <span style="border-bottom:1px solid #000; padding:0 10px;">A<sup>tt</sup></span>
+                                <span>k<sub>tc</sub></span>
+                            </span>
+                            <span style="font-size:16pt; font-family: 'Times New Roman'; margin-left:15px;"> = </span>
+                            <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin-left:10px;">
+                                <span style="border-bottom:1px solid #000; padding:0 10px;">${Ntt}</span>
+                                <span>${ktc}</span>
+                            </span>
+                            <span style="font-size:16pt; font-family: 'Times New Roman'; margin-left:15px;"> = <b>${Ntc.toFixed(2)} kN</b></span>
+                        </span>
+                    </div>
+
+                    <p><b>Bước 2: Xác định cường độ tính toán của đất nền</b></p>
+                    <div style="margin-left:20px; margin-bottom:10px;">
+                        - Giả thiết chiều rộng móng b = ${data.b / 1000} m;<br>
+                        - Chọn chiều sâu đặt móng h = ${data.hm || 1.5} m.
+                    </div>
+                    <div style="margin-left:20px; font-style:italic;">Cường độ tính toán của đất nền xác định theo công thức:</div>
+                    
+                    <div style="text-align:center; margin:25px 0;">
+                        <span style="font-size:16pt; font-family: 'Times New Roman';">
+                            R = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center;">
+                                <span style="border-bottom:1px solid #000; padding:0 5px;">m<sub>1</sub>m<sub>2</sub></span>
+                                <span>k<sub>tc</sub></span>
+                            </span> (Ab&gamma;<sub>II</sub> + Bh&gamma;'<sub>II</sub> + Dc<sub>II</sub>)
+                        </span>
+                    </div>
+
+                    <div style="margin-left:20px; margin-bottom:25px;">
+                        Trong đó:<br>
+                        - m<sub>1</sub> = 1.2 (Giả thiết đáy móng là đất rời/cát);<br>
+                        - m<sub>2</sub> = 1.1 (Giả thiết tỷ số L/H &ge; 4);<br>
+                        - k<sub>tc</sub> = 1.0 (Các chỉ tiêu xác định bằng thí nghiệm trực tiếp);<br>
+                        ${(() => {
+                            const abdTable = [
+                                { phi: 0, A: 0, B: 1, D: 3.14 }, { phi: 2, A: 0.03, B: 1.12, D: 3.32 },
+                                { phi: 4, A: 0.06, B: 1.25, D: 3.51 }, { phi: 6, A: 0.1, B: 1.39, D: 3.71 },
+                                { phi: 8, A: 0.14, B: 1.55, D: 3.93 }, { phi: 10, A: 0.18, B: 1.73, D: 4.17 },
+                                { phi: 12, A: 0.23, B: 1.94, D: 4.42 }, { phi: 14, A: 0.29, B: 2.17, D: 4.69 },
+                                { phi: 16, A: 0.36, B: 2.43, D: 5.00 }, { phi: 18, A: 0.43, B: 2.72, D: 5.31 },
+                                { phi: 20, A: 0.51, B: 3.06, D: 5.66 }, { phi: 22, A: 0.61, B: 3.44, D: 6.04 },
+                                { phi: 24, A: 0.72, B: 3.87, D: 6.48 }, { phi: 26, A: 0.84, B: 4.37, D: 6.90 },
+                                { phi: 28, A: 0.98, B: 4.93, D: 7.40 }, { phi: 30, A: 1.15, B: 5.59, D: 7.95 },
+                                { phi: 32, A: 1.34, B: 6.35, D: 8.55 }, { phi: 34, A: 1.55, B: 7.21, D: 9.21 },
+                                { phi: 36, A: 1.81, B: 8.25, D: 9.97 }, { phi: 38, A: 2.11, B: 9.44, D: 10.80 },
+                                { phi: 40, A: 2.46, B: 10.85, D: 11.73 }, { phi: 45, A: 3.66, B: 16.27, D: 14.86 }
+                            ];
+                            const phi_val = data.s_phi ? parseFloat(data.s_phi[0]) : 20;
+                            const c_val = data.s_c ? parseFloat(data.s_c[0]) : 10;
+                            const gamma_val = data.s_gamma ? parseFloat(data.s_gamma[0]) : 18;
+                            const hm = data.hm || 1.5;
+                            const b_m = data.b / 1000;
+                            
+                            let A=0, B=0, D=0;
+                            for(let i=0; i<abdTable.length-1; i++) {
+                                if(phi_val >= abdTable[i].phi && phi_val <= abdTable[i+1].phi) {
+                                    const ratio = (phi_val - abdTable[i].phi) / (abdTable[i+1].phi - abdTable[i].phi);
+                                    A = abdTable[i].A + ratio * (abdTable[i+1].A - abdTable[i].A);
+                                    B = abdTable[i].B + ratio * (abdTable[i+1].B - abdTable[i].B);
+                                    D = abdTable[i].D + ratio * (abdTable[i+1].D - abdTable[i].D);
+                                    break;
+                                }
+                            }
+                            const R_val = (1.2 * 1.1 / 1.0) * (A * b_m * gamma_val + B * hm * gamma_val + D * c_val);
+
+                            return `
+                                - &phi;<sub>II</sub> = &phi;<sub>tc</sub> = ${phi_val}&deg; &rArr; A = ${A.toFixed(3)}; B = ${B.toFixed(3)}; D = ${D.toFixed(3)};<br>
+                                - c<sub>II</sub> = ${c_val} kPa; &gamma;<sub>II</sub> = &gamma;'<sub>II</sub> = ${gamma_val} kN/m&sup3;;<br>
+                                Thay số vào công thức trên, ta có:<br>
+                                <div style="text-align:center; margin:15px 0;">
+                                    <span style="font-size:16pt; font-family: 'Times New Roman';">
+                                        R = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center;">
+                                            <span style="border-bottom:1px solid #000; padding:0 5px;">1.2 &times; 1.1</span>
+                                            <span>1.0</span>
+                                        </span> (${A.toFixed(3)}&times;${b_m}&times;${gamma_val} + ${B.toFixed(3)}&times;${hm}&times;${gamma_val} + ${D.toFixed(3)}&times;${c_val})
+                                    </span>
+                                </div>
+                                <div style="text-align:center; margin:15px 0;">
+                                    <span style="font-size:16pt; font-family: 'Times New Roman';">
+                                        R = <b>${R_val.toFixed(2)} kPa</b>
+                                    </span>
+                                </div>
+                            `;
+                        })()}
+                    </div>
+
+                    <p><b>Bước 3: Xác định kích thước sơ bộ của đáy móng</b></p>
+                    <div style="margin-left:20px; font-style:italic;">Diện tích sơ bộ đáy móng xác định theo công thức:</div>
+                    ${(() => {
+                        const abdTable = [
+                            { phi: 0, A: 0, B: 1, D: 3.14 }, { phi: 2, A: 0.03, B: 1.12, D: 3.32 },
+                            { phi: 4, A: 0.06, B: 1.25, D: 3.51 }, { phi: 6, A: 0.1, B: 1.39, D: 3.71 },
+                            { phi: 8, A: 0.14, B: 1.55, D: 3.93 }, { phi: 10, A: 0.18, B: 1.73, D: 4.17 },
+                            { phi: 12, A: 0.23, B: 1.94, D: 4.42 }, { phi: 14, A: 0.29, B: 2.17, D: 4.69 },
+                            { phi: 16, A: 0.36, B: 2.43, D: 5.00 }, { phi: 18, A: 0.43, B: 2.72, D: 5.31 },
+                            { phi: 20, A: 0.51, B: 3.06, D: 5.66 }, { phi: 22, A: 0.61, B: 3.44, D: 6.04 },
+                            { phi: 24, A: 0.72, B: 3.87, D: 6.48 }, { phi: 26, A: 0.84, B: 4.37, D: 6.90 },
+                            { phi: 28, A: 0.98, B: 4.93, D: 7.40 }, { phi: 30, A: 1.15, B: 5.59, D: 7.95 },
+                            { phi: 32, A: 1.34, B: 6.35, D: 8.55 }, { phi: 34, A: 1.55, B: 7.21, D: 9.21 },
+                            { phi: 36, A: 1.81, B: 8.25, D: 9.97 }, { phi: 38, A: 2.11, B: 9.44, D: 10.80 },
+                            { phi: 40, A: 2.46, B: 10.85, D: 11.73 }, { phi: 45, A: 3.66, B: 16.27, D: 14.86 }
+                        ];
+                        const phi_val = data.s_phi ? parseFloat(data.s_phi[0]) : 20;
+                        const c_val = data.s_c ? parseFloat(data.s_c[0]) : 10;
+                        const gamma_val = data.s_gamma ? parseFloat(data.s_gamma[0]) : 18;
+                        const hm = data.hm || 1.5;
+                        const b_m_pre = data.b / 1000;
+                        const ktc = 1.15;
+                        const Ntc = (parseFloat(data.n) || 0) / ktc;
+                        
+                        let A=0, B=0, D=0;
+                        for(let i=0; i<abdTable.length-1; i++) {
+                            if(phi_val >= abdTable[i].phi && phi_val <= abdTable[i+1].phi) {
+                                const ratio = (phi_val - abdTable[i].phi) / (abdTable[i+1].phi - abdTable[i].phi);
+                                A = abdTable[i].A + ratio * (abdTable[i+1].A - abdTable[i].A);
+                                B = abdTable[i].B + ratio * (abdTable[i+1].B - abdTable[i].B);
+                                D = abdTable[i].D + ratio * (abdTable[i+1].D - abdTable[i].D);
+                                break;
+                            }
+                        }
+                        const R_val = (1.2 * 1.1 / 1.0) * (A * b_m_pre * gamma_val + B * hm * gamma_val + D * c_val);
+                        
+                        // Bước 3 logic
+                        const gamma_tb = 20;
+                        const k_safe = 1.2;
+                        const Asb = k_safe * Ntc / (R_val - gamma_tb * hm);
+                        const kn = 1.5; // Giả thiết tỷ số cho móng lệch tâm theo tài liệu
+                        const b_sb = Math.sqrt(Asb / kn);
+                        const l_sb = kn * b_sb;
+
+                        return `
+                        <div style="text-align:center; margin:25px 0;">
+                            <span style="display:inline-flex; align-items:center; font-size:16pt; font-family: 'Times New Roman';">
+                                A<sub>sb</sub> = k
+                                <span style="display:inline-flex; flex-direction:column; text-align:center; margin:0 10px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 10px;">N<sub>0</sub><sup>tc</sup></span>
+                                    <span>R - &gamma;<sub>tb</sub>h</span>
+                                </span>
+                                = 1.2 &times; 
+                                <span style="display:inline-flex; flex-direction:column; text-align:center; margin:0 10px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 10px;">${Ntc.toFixed(2)}</span>
+                                    <span>${R_val.toFixed(2)} - 20&times;${hm}</span>
+                                </span>
+                                = <b>${Asb.toFixed(2)} m<sup>2</sup></b>
+                            </span>
+                        </div>
+
+                        <div style="margin-left:20px; margin-bottom:10px;">
+                            Do móng chịu tải lệch tâm nên chọn đáy móng hình chữ nhật, tỷ số giữa các cạnh k<sub>n</sub> = ${kn.toFixed(1)}. Cạnh ngắn của móng là:<br>
+                            <div style="text-align:center; margin:15px 0;">
+                                <span style="font-size:16pt; font-family: 'Times New Roman';">
+                                    b = &radic;<span style="border-top:1px solid #000;">(A<sub>sb</sub> / k<sub>n</sub>)</span> = &radic;<span style="border-top:1px solid #000;">(${Asb.toFixed(2)} / ${kn.toFixed(1)})</span> = <b>${b_sb.toFixed(2)} m</b>
+                                </span>
+                            </div>
+                            Cạnh dài: l = k<sub>n</sub> &times; b = ${kn.toFixed(1)} &times; ${b_sb.toFixed(2)} = <b>${l_sb.toFixed(2)} m</b><br>
+                            &rArr; Chọn kích thước móng b &times; l = <b>${data.b/1000} &times; ${data.l/1000} (m)</b>.
+                        </div>`;
+                    })()}
+                </div>`;
+                    
                     document.getElementById('report-paper').insertAdjacentHTML('beforeend', html);
-                    alert('Đã phục hồi Thuyết minh Móng Đơn & Tính Lún (TCVN 9362:2012)!');
-                    document.getElementById('report-paper').insertAdjacentHTML('beforeend', html);
-                    alert('Đã thêm Thuyết minh Sức chịu tải cọc (TCVN 10304:2014) vào báo cáo!');
                 },
 
                 addDetailedWallTable() {
