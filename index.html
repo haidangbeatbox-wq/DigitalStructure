@@ -1585,7 +1585,8 @@
 
                     if (!best) return { ok: false, trace: "Lỗi tính đai!", txt: "---" };
                     let txt = `Ø${best.d} a${best.s1}/a${best.s2}`;
-                    return { ok: Q <= Q_comp_check && Q <= Q_b_max, txt, Qmax: Q_comp_check, Q_b_max, Qb_min, cq, q1, Rsw, best, Mb, qsw1, qsw2, qsw3, qsw_calc, qsw_min, qsw_final, cond_calc, sMax, sCt_goi, sCt_nhip, g_sw, gs, g, p, g_wall, g_s_max, p_s_max, aq: safe_aq };
+                    let shearTrace = `<b>[ TÍNH TOÁN CỐT ĐAI CỘT ]</b>\n- Lực cắt Q = ${Q} kN; Q_max = ${Q_comp_check.toFixed(1)} kN; Q_b_max = ${Q_b_max.toFixed(1)} kN\n- ${Q <= Q_comp_check ? 'Thoả mãn điều kiện chống nén vỡ bê tông.' : 'Không thoả mãn điều kiện nén vỡ!'} \n- Thép đai tính toán: ${txt}\n`;
+                    return { ok: Q <= Q_comp_check && Q <= Q_b_max, txt, trace: shearTrace, Qmax: Q_comp_check, Q_b_max, Qb_min, cq, q1, Rsw, best, Mb, qsw1, qsw2, qsw3, qsw_calc, qsw_min, qsw_final, cond_calc, sMax, sCt_goi, sCt_nhip, g_sw, gs, g, p, g_wall, g_s_max, p_s_max, aq: safe_aq };
                 },
 
                 //MODULE SƠ BỘ TIẾT DIỆN TỰ ĐỘNG LƯỚI
@@ -1849,15 +1850,25 @@
                         
                         let { xi_R } = this.getAlphaR(m.Rb, m.Rs, m.Es);
                         let alpha_n = N / (m.Rb * b * h0);
-                        let case_txt = (alpha_n > xi_R) ? "Nén lệch tâm bé" : "Nén lệch tâm lớn";
                         let Mx_des = N * e0_x * eta_x;
+                        let As_cal, xi_final, alpha_m1, alpha_s1, xi_1, case_txt;
 
-                        let xi_1 = Math.min((alpha_n + xi_R) / 2, 1);
-                        let alpha_m1 = (N * (eta_x * e0_x + 0.5 * za)) / (m.Rb * b * h0 * h0);
-                        let alpha_s1 = (alpha_m1 - xi_1 * (1 - 0.5 * xi_1)) / (1 - d_ratio);
-                        let xi_final = (alpha_n * (1 - xi_R) + 2 * alpha_s1 * xi_R) / (1 - xi_R + 2 * alpha_s1);
+                        if (alpha_n <= xi_R) {
+                            case_txt = "Nén lệch tâm lớn";
+                            As_cal = (N * (2 * eta_x * e0_x - za)) / (2 * m.Rs * za);
+                            xi_final = alpha_n; 
+                            xi_1 = alpha_n;
+                            alpha_m1 = Mx_des / (m.Rb * b * h0 * h0);
+                            alpha_s1 = As_cal * m.Rs / (m.Rb * b * h0);
+                        } else {
+                            case_txt = "Nén lệch tâm bé";
+                            xi_1 = Math.min((alpha_n + xi_R) / 2, 1);
+                            alpha_m1 = (N * (eta_x * e0_x + 0.5 * za)) / (m.Rb * b * h0 * h0);
+                            alpha_s1 = (alpha_m1 - xi_1 * (1 - 0.5 * xi_1)) / (1 - d_ratio);
+                            xi_final = (alpha_n * (1 - xi_R) + 2 * alpha_s1 * xi_R) / (1 - xi_R + 2 * alpha_s1);
+                            As_cal = (m.Rb * b * h0 / m.Rs) * ((alpha_m1 - xi_final * (1 - 0.5 * xi_final)) / (1 - d_ratio));
+                        }
 
-                        let As_cal = (m.Rb * b * h0 / m.Rs) * ((alpha_m1 - xi_final * (1 - 0.5 * xi_final)) / (1 - d_ratio));
                         let mu = (As_cal / (b * h0)) * 100;
                         let mu_t_calc = 2 * mu;
 
@@ -4511,6 +4522,192 @@
                     let L0 = res.L0;
                     let Qmax = 0.3 * m.Rb * b * h0 / 1000;
 
+                    const renderDetail = (c, subLabel, pairIdx) => {
+                        if (!c) return '';
+                        const labelMap = { 
+                            "b1": "Tính toán chi tiết cho trường hợp nguy hiểm nhất", 
+                            "b2": "Tính toán cốt thép đối xứng cho cặp 3",
+                            "b3": "Tính toán cốt thép đối xứng cho cặp 1"
+                        };
+                        let displayLabel = labelMap[subLabel] || `Tính toán cho cặp số ${pairIdx}`;
+                        return `
+                        <div style="margin-bottom:12px;"><b><i>${subLabel}) ${displayLabel}:</i></b></div>
+                        <div style="margin-left:15px; margin-bottom:15px;"><i>Đối với cặp nội lực: N = ${c.N_kn} kN; M = ${c.Mx} kNm (${c.feature})</i></div>
+                        
+                        <div style="margin-left:15px; margin-bottom:18px;">
+                            - Giả thiết hàm lượng cốt thép cột <i>&mu;<sub>t</sub></i> = ${(c.mu_t * 100).toFixed(2)}%, mô men quán tính toàn bộ cốt thép dọc đối với trọng tâm tiết diện ngang của cấu kiện:<br>
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>I<sub>s</sub></i> = (<i>A<sub>s</sub> + A'<sub>s</sub></i>)(0.5<i>h - a'</i>)<sup>2</sup> = <i>&mu;<sub>t</sub>bh<sub>0</sub></i>(0.5<i>h - a'</i>)<sup>2</sup><br>
+                                = ${c.mu_t} &times; ${b} &times; ${h0} &times; (0.5 &times; ${h} - ${a})<sup>2</sup> = <b>${Math.round(c.Is_x)} (mm<sup>4</sup>)</b>
+                            </div>
+                            
+                            - Mô men với trọng tâm của thanh thép chịu kéo nhiều nhất (hoặc chịu nén ít nhất) do tác dụng của tải trọng dài hạn là:<br>
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>M<sub>L1</sub></i> = <i>M<sub>dh</sub> + N<sub>dh</sub></i><span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>h<sub>0</sub> - a'</i></span>
+                                    <span>2</span>
+                                </span> = ${c.Mdh} + ${c.Ndh}<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${(h0 - a) / 1000} - ${(a) / 1000}</span>
+                                    <span>2</span>
+                                </span> = <b>${c.ML1.toFixed(2)} (kNm)</b>
+                            </div>
+
+                            - Mô men với trọng tâm của thanh thép chịu kéo nhiều nhất (hoặc chịu nén ít nhất) do tác dụng của toàn bộ tải trọng là:<br>
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>M<sub>L</sub></i> = <i>M + N</i><span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>h<sub>0</sub> - a'</i></span>
+                                    <span>2</span>
+                                </span> = ${c.Mx} + ${c.N_kn}<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${(h0 - a) / 1000} - ${(a) / 1000}</span>
+                                    <span>2</span>
+                                </span> = <b>${c.ML.toFixed(2)} (kNm)</b>
+                            </div>
+
+                            - Hệ số <i>&phi;<sub>L</sub></i> xét đến ảnh hưởng của tải trọng tác dụng dài hạn được tính theo công thức sau:<br>
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>&phi;<sub>L</sub></i> = 1 + <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>M<sub>L1</sub></i></span>
+                                    <span><i>M<sub>L</sub></i></span>
+                                </span> = 1 + <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.ML1.toFixed(2)}</span>
+                                    <span>${c.ML.toFixed(2)}</span>
+                                </span> = <b>${c.phi_L.toFixed(2)}</b>
+                            </div>
+
+                            - Độ lệch tâm tương đối của lực dọc <i>&delta;<sub>e</sub> = e<sub>0</sub>/h</i> = ${c.e0_x.toFixed(1)}/${h} = <b>${c.delta_e.toFixed(3)}</b> thuộc khoảng [0,15; 1,5].<br>
+                            - Tính toán: <i>k<sub>b</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">0,15</span>
+                                    <span><i>&phi;<sub>L</sub></i>(0,3 + <i>&delta;<sub>e</sub></i>)</span>
+                                </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">0,15</span>
+                                    <span>${c.phi_L.toFixed(2)}(0,3 + ${c.delta_e.toFixed(3)})</span>
+                                </span> = <b>${c.kb.toFixed(3)}</b><br>
+                            
+                            - Xác định độ cứng cấu kiện BTCT theo công thức:<br>
+                            <div style="text-align:center; margin:10px 0;">
+                                <i>D = k<sub>b</sub>E<sub>b</sub>I + k<sub>s</sub>E<sub>s</sub>I<sub>s</sub></i><br>
+                                = ${c.kb.toFixed(3)} &times; ${(m.Eb).toFixed(0)} &times; ${b} &times; ${h}<sup>3</sup> / 12 + 0,7 &times; 200000 &times; ${c.Is_x.toFixed(0)}<br>
+                                = <b>${(c.Dx / 1e9).toFixed(1)} &times; 10<sup>9</sup> (Nmm<sup>2</sup>)</b>
+                            </div>
+                            
+                            - Lực dọc tới hạn quy ước:<br>
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>N<sub>cr</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">&pi;<sup>2</sup> <i>D</i></span>
+                                    <span><i>L<sub>0</sub></i><sup>2</sup></span>
+                                </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">3,14<sup>2</sup> &times; ${(c.Dx / 1e9).toFixed(1)} &times; 10<sup>9</sup></span>
+                                    <span>${L0}<sup>2</sup></span>
+                                </span> = <b>${(c.Ncr_x / 1000).toFixed(1)} (kN)</b>
+                            </div>
+
+                            - Hệ số ảnh hưởng uốn dọc:<br>
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>&eta;</i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">1</span>
+                                    <span>1 - <span style="font-size: 0.8em; vertical-align: middle;"><i>N / N<sub>cr</sub></i></span></span>
+                                </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">1</span>
+                                    <span>1 - <span style="font-size: 0.8em; vertical-align: middle;">${c.N_kn} / ${(c.Ncr_x / 1000).toFixed(1)}</span></span>
+                                </span> = <b>${c.eta_x.toFixed(2)}</b>
+                            </div>
+
+                            - <i>&alpha;<sub>n</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>N</i></span>
+                                    <span><i>R<sub>b</sub> b h<sub>0</sub></i></span>
+                                </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.N_kn} &times; 1000</span>
+                                    <span>${m.Rb} &times; ${b} &times; ${h0}</span>
+                                </span> = <b>${c.alpha_n.toFixed(3)}</b> ${c.alpha_n > c.xi_R ? ` > &xi;<sub>R</sub> = ${c.xi_R.toFixed(3)} &rarr; Nén lệch tâm bé.` : ` &le; &xi;<sub>R</sub> = ${c.xi_R.toFixed(3)} &rarr; Nén lệch tâm lớn.`}<br>
+                            
+                            ${(c.alpha_n <= c.xi_R + 0.001) ? `
+                            <div style="margin: 10px 0;">&rarr; Trường hợp cột chịu nén lệch tâm lớn với vùng nén rất nhỏ, lấy <i>x = 2a'</i> và xác định diện tích cốt thép theo công thức tinh giản:</div>
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>A<sub>s,cal</sub> = A'<sub>s,cal</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>N(2&eta;e<sub>0</sub> - z<sub>a</sub>)</i></span>
+                                    <span>2<i>R<sub>s</sub> z<sub>a</sub></i></span>
+                                </span><br>
+                                = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.N_kn} &times; 10<sup>3</sup> (2 &times; ${c.eta_x.toFixed(2)} &times; ${c.e0_x.toFixed(1)} - ${c.za})</span>
+                                    <span>2 &times; ${m.Rs} &times; ${c.za}</span>
+                                </span> = <b>${c.As_req.toFixed(1)} (mm<sup>2</sup>)</b>
+                            </div>
+                            ` : `
+                            - Tính toán diện tích cốt thép theo các bước sau:<br>
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>&xi;<sub>1</sub></i> = min(<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>&alpha;<sub>n</sub> + &xi;<sub>R</sub></i></span>
+                                    <span>2</span>
+                                </span>; 1) = min(<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.alpha_n.toFixed(3)} + ${c.xi_R.toFixed(3)}</span>
+                                    <span>2</span>
+                                </span>; 1) = <b>${c.xi_1.toFixed(3)}</b>
+                            </div>
+
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>&alpha;<sub>m1</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>N(&eta;e<sub>0</sub> + 0,5z<sub>a</sub>)</i></span>
+                                    <span><i>R<sub>b</sub> b h<sub>0</sub><sup>2</sup></i></span>
+                                </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.N_kn} &times; 10<sup>3</sup> (${c.eta_x.toFixed(2)} &times; ${c.e0_x.toFixed(1)} + 0,5 &times; ${c.za})</span>
+                                    <span>${m.Rb} &times; ${b} &times; ${h0}<sup>2</sup></span>
+                                </span> = <b>${c.alpha_m1.toFixed(3)}</b>
+                            </div>
+
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>&alpha;<sub>s1</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>&alpha;<sub>m1</sub> - &xi;<sub>1</sub>(1 - 0,5&xi;<sub>1</sub>)</i></span>
+                                    <span>1 - <i>&delta;</i></span>
+                                </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.alpha_m1.toFixed(3)} - ${c.xi_1.toFixed(3)}(1 - 0,5 &times; ${c.xi_1.toFixed(3)})</span>
+                                    <span>1 - ${c.d_ratio.toFixed(3)}</span>
+                                </span> = <b>${c.alpha_s1.toFixed(3)}</b>
+                            </div>
+
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>&xi;</i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>&alpha;<sub>n</sub>(1 - &xi;<sub>R</sub>) + 2&alpha;<sub>s1</sub>&xi;<sub>R</sub></i></span>
+                                    <span>1 - <i>&xi;<sub>R</sub> + 2&alpha;<sub>s1</sub></i></span>
+                                </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.alpha_n.toFixed(3)}(1 - ${c.xi_R.toFixed(3)}) + 2 &times; ${c.alpha_s1.toFixed(3)} &times; ${c.xi_R.toFixed(3)}</span>
+                                    <span>1 - ${c.xi_R.toFixed(3)} + 2 &times; ${c.alpha_s1.toFixed(3)}</span>
+                                </span> = <b>${c.xi_final.toFixed(3)}</b>
+                            </div>
+
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>A<sub>s,cal</sub> = A'<sub>s,cal</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>R<sub>b</sub> b h<sub>0</sub></i></span>
+                                    <span><i>R<sub>s</sub></i></span>
+                                 </span> &times; <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;"><i>&alpha;<sub>m1</sub> - &xi;(1 - 0,5&xi;)</i></span>
+                                    <span>1 - <i>&delta;</i></span>
+                                </span><br>
+                                = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${m.Rb} &times; ${b} &times; ${h0}</span>
+                                    <span>${m.Rs}</span>
+                                </span> &times; <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.alpha_m1.toFixed(3)} - ${c.xi_final.toFixed(3)}(1 - 0,5 &times; ${c.xi_final.toFixed(3)})</span>
+                                    <span>1 - ${c.d_ratio.toFixed(3)}</span>
+                                </span> = <b>${c.As_req.toFixed(1)} (mm<sup>2</sup>)</b>
+                            </div>
+                            `}
+
+                            <div style="text-align:center; margin:15px 0;">
+                                <i>&mu;</i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
+                                    <span style="border-bottom:1px solid #000; padding:0 3px;">${c.As_req.toFixed(1)}</span>
+                                    <span>${b} &times; ${h0}</span>
+                                </span> &times 100% = <b>${c.mu.toFixed(2)}%</b>
+                            </div>
+
+                            <div style="margin:10px 0;">
+                                <i>&mu;<sub>t</sub> = 2&mu; = ${c.mu_t_calc.toFixed(2)}% > 2&mu;<sub>min</sub> = ${(2 * c.sum_mu * 100).toFixed(1)}% &rarr; thỏa mãn.</i>
+                            </div>
+                            <div style="margin:10px 0;">
+                                - Giá trị <i>&mu;<sub>t</sub></i> tính toán xấp xỉ với <i>&mu;<sub>t</sub></i> giả thiết (${c.mu_t_calc.toFixed(2)}% &approx; ${(c.mu_t * 100).toFixed(2)}%) &rarr; thỏa mãn.
+                            </div>
+                        </div>`;
+                    };
+
                     let html = `
                 <div style="font-family:'Times New Roman', serif; font-size:13pt; line-height:1.6; color:#000; margin-bottom: 25px; page-break-inside: avoid;">
                     <div style="font-weight:bold; text-transform:uppercase; font-size:14pt; margin-bottom:10px; border-bottom: 1pt solid #000; padding-bottom: 5px;">B. TÍNH TOÁN CỐT THÉP CỘT LỆCH TÂM</div>
@@ -4579,32 +4776,29 @@
 
                         <div style="margin-bottom:8px;">- Xác định hàm lượng cốt thép tối thiểu theo độ mảnh <i>&lambda;</i> theo 2 phương: <br>
                             <div style="margin-left:25px; margin-top:10px;">
-                                <div style="display:inline-flex; align-items:center; margin-bottom:10px;">
-                                    <i>&lambda;<sub>h</sub></i> = 
-                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
-                                        <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
-                                        <span>0,289<i>h</i></span>
-                                    </span> = 
-                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
-                                        <span style="border-bottom:1px solid #000; padding:0 3px;">${res.L0}</span>
-                                        <span>0,289 &times; ${h}</span>
-                                    </span> = <b>${res.lambda_x.toFixed(1)}</b> &rarr; <i>&mu;<sub>min,h</sub></i> &approx; ${(res.lambda_x <= 28 ? 0.1 : (res.lambda_x <= 48 ? 0.15 : 0.2)).toFixed(2)}%
-                                </div><br>
-                                
-                                <div style="display:inline-flex; align-items:center;">
-                                    <i>&lambda;<sub>b</sub></i> = 
-                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
-                                        <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
-                                        <span><i>i<sub>b</sub></i></span>
-                                    </span> = 
-                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
-                                        <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
-                                        <span>0,289<i>b</i></span>
-                                    </span> = 
-                                    <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
-                                        <span style="border-bottom:1px solid #000; padding:0 3px;">${res.L0}</span>
-                                        <span>0,289 &times; ${b}</span>
-                                    </span> = <b>${res.lambda_y.toFixed(1)}</b> &rarr; <i>&mu;<sub>min,b</sub></i> &approx; ${(res.lambda_y <= 28 ? 0.1 : (res.lambda_y <= 48 ? 0.15 : 0.2)).toFixed(2)}%
+                                <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:10px;">
+                                    <div style="display:inline-flex; align-items:center;">
+                                        <i>&lambda;<sub>h</sub></i> = 
+                                        <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                            <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
+                                            <span>0,289<i>h</i></span>
+                                        </span> = 
+                                        <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                            <span style="border-bottom:1px solid #000; padding:0 3px;">${res.L0}</span>
+                                            <span>0,289 &times; ${h}</span>
+                                        </span> = <b>${res.lambda_x.toFixed(1)}</b> &rarr; <i>&mu;<sub>min,h</sub></i> &approx; ${(res.lambda_x <= 28 ? 0.1 : (res.lambda_x <= 48 ? 0.15 : 0.2)).toFixed(2)}%
+                                    </div>
+                                    <div style="display:inline-flex; align-items:center;">
+                                        <i>&lambda;<sub>b</sub></i> = 
+                                        <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                            <span style="border-bottom:1px solid #000; padding:0 3px;"><i>L<sub>0</sub></i></span>
+                                            <span>0,289<i>b</i></span>
+                                        </span> = 
+                                        <span style="display:inline-flex; flex-direction:column; text-align:center; vertical-align:middle; margin: 0 5px;">
+                                            <span style="border-bottom:1px solid #000; padding:0 3px;">${res.L0}</span>
+                                            <span>0,289 &times; ${b}</span>
+                                        </span> = <b>${res.lambda_y.toFixed(1)}</b> &rarr; <i>&mu;<sub>min,b</sub></i> &approx; ${(res.lambda_y <= 28 ? 0.1 : (res.lambda_y <= 48 ? 0.15 : 0.2)).toFixed(2)}%
+                                    </div>
                                 </div>
                                 <div style="margin-top:15px; font-weight:bold;">Chọn chung: &mu;<sub>min</sub> = ${Math.max(
                                     (res.lambda_x <= 28 ? 0.1 : (res.lambda_x <= 48 ? 0.15 : 0.2)),
@@ -4643,169 +4837,46 @@
                         <u>Lưu ý:</u> <i>e<sub>1</sub> = M/N; e<sub>0</sub> = max(e<sub>1</sub>; e<sub>a</sub>). Cặp in đậm màu vàng là trường hợp nguy hiểm nhất dùng để tính toán chi tiết dưới đây.</i>
                     </div>
 
-                    <div style="margin-bottom:12px;"><b>b) Tính toán cốt thép đối xứng cho cặp ${res.worstIdx + 1}:</b></div>
-                    <div style="margin-left:15px; margin-bottom:15px;"><i>Ở đây thực hiện 3 cách tính toán cho cặp nội lực số ${res.worstIdx + 1}.</i></div>
+                    <div style="margin-bottom:12px;"><b>b) Tính toán cốt thép đối xứng:</b></div>
+                    ${renderDetail(res.combos[res.worstIdx], "b1", res.worstIdx + 1)}
+                    ${res.combos[2] ? renderDetail(res.combos[2], "b2", 3) : ''}
+                    ${renderDetail(res.combos[0] ? res.combos[0] : null, "b3", 1)}
+
+                    <div style="margin-top:20px; margin-bottom:12px;"><b>c) Bảng tổng hợp kết quả tính toán và chọn thép:</b></div>
+                    <table style="width:100%; border-collapse:collapse; border:1px solid #000; text-align:center; font-size:11pt; margin-bottom:20px;">
+                        <thead>
+                            <tr style="background:#f2f2f2;">
+                                <th style="border:1px solid #000; padding:5px;">TT</th>
+                                <th style="border:1px solid #000; padding:5px;">Đặc điểm</th>
+                                <th style="border:1px solid #000; padding:5px;">N (kN)</th>
+                                <th style="border:1px solid #000; padding:5px;">M (kNm)</th>
+                                <th style="border:1px solid #000; padding:5px;">A<sub>s,cal</sub> (mm²)</th>
+                                <th style="border:1px solid #000; padding:5px;">Cốt thép chọn</th>
+                                <th style="border:1px solid #000; padding:5px;">A<sub>s,chọn</sub> (mm²)</th>
+                                <th style="border:1px solid #000; padding:5px;">Kiểm tra</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${res.combos.map((comb, idx) => {
+                                const pass = asChon >= comb.As_req;
+                                return `
+                                <tr>
+                                    <td style="border:1px solid #000; padding:5px;">${idx + 1}</td>
+                                    <td style="border:1px solid #000; padding:5px; text-align:left;">${comb.feature}</td>
+                                    <td style="border:1px solid #000; padding:5px;">${comb.N_kn}</td>
+                                    <td style="border:1px solid #000; padding:5px;">${comb.Mx}</td>
+                                    <td style="border:1px solid #000; padding:5px;">${comb.As_req.toFixed(1)}</td>
+                                    <td style="border:1px solid #000; padding:5px;">${textChon}</td>
+                                    <td style="border:1px solid #000; padding:5px;">${asChon.toFixed(1)}</td>
+                                    <td style="border:1px solid #000; padding:5px; font-weight:bold; color:${pass ? '#000' : 'red'};">${pass ? 'ĐẠT' : 'K.ĐẠT'}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
                     
-                    <div style="margin-bottom:12px;"><b><i>b1) Cách 1:</i></b></div>
-                    <div style="margin-left:15px; margin-bottom:18px;">
-                        - Giả thiết hàm lượng cốt thép cột <i>&mu;<sub>t</sub></i> = ${(res.mu_t * 100).toFixed(2)}%, mô men quán tính toàn bộ cốt thép dọc đối với trọng tâm tiết diện ngang của cấu kiện:<br>
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>I<sub>s</sub></i> = (<i>A<sub>s</sub> + A'<sub>s</sub></i>)(0.5<i>h - a'</i>)<sup>2</sup> = <i>&mu;<sub>t</sub>bh<sub>0</sub></i>(0.5<i>h - a'</i>)<sup>2</sup><br>
-                            = ${res.mu_t} &times; ${b} &times; ${h0} &times; (0.5 &times; ${h} - ${a})<sup>2</sup> = <b>${Math.round(res.Is_x)} (mm<sup>4</sup>)</b>
-                        </div>
-                        
-                        - Mô men với trọng tâm của thanh thép chịu kéo nhiều nhất (hoặc chịu nén ít nhất) do tác dụng của tải trọng dài hạn là:<br>
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>M<sub>L1</sub></i> = <i>M<sub>dh</sub> + N<sub>dh</sub></i><span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>h<sub>0</sub> - a'</i></span>
-                                <span>2</span>
-                            </span> = ${res.Mdh} + ${res.Ndh}<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${(h0-a)/1000} - ${(a)/1000}</span>
-                                <span>2</span>
-                            </span> = <b>${res.ML1.toFixed(2)} (kNm)</b>
-                        </div>
-
-                        - Mô men với trọng tâm của thanh thép chịu kéo nhiều nhất (hoặc chịu nén ít nhất) do tác dụng của toàn bộ tải trọng là:<br>
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>M<sub>L</sub></i> = <i>M + N</i><span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>h<sub>0</sub> - a'</i></span>
-                                <span>2</span>
-                            </span> = ${res.Mx} + ${res.N_kn}<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${(h0-a)/1000} - ${(a)/1000}</span>
-                                <span>2</span>
-                            </span> = <b>${res.ML.toFixed(2)} (kNm)</b>
-                        </div>
-
-                        - Hệ số <i>&phi;<sub>L</sub></i> xét đến ảnh hưởng của tải trọng tác dụng dài hạn được tính theo công thức sau:<br>
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>&phi;<sub>L</sub></i> = 1 + <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>M<sub>L1</sub></i></span>
-                                <span><i>M<sub>L</sub></i></span>
-                            </span> = 1 + <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.ML1.toFixed(2)}</span>
-                                <span>${res.ML.toFixed(2)}</span>
-                            </span> = <b>${res.phi_L.toFixed(2)}</b>
-                        </div>
-
-                        - Độ lệch tâm tương đối của lực dọc <i>&delta;<sub>e</sub> = e<sub>0</sub>/h</i> = ${res.e0_x.toFixed(1)}/${h} = <b>${res.delta_e.toFixed(3)}</b> thuộc khoảng [0,15; 1,5].<br>
-                        - Tính toán: <i>k<sub>b</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">0,15</span>
-                                <span><i>&phi;<sub>L</sub></i>(0,3 + <i>&delta;<sub>e</sub></i>)</span>
-                            </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">0,15</span>
-                                <span>${res.phi_L.toFixed(2)}(0,3 + ${res.delta_e.toFixed(3)})</span>
-                            </span> = <b>${res.kb.toFixed(3)}</b><br>
-                        
-                        - Xác định độ cứng cấu kiện BTCT theo công thức:<br>
-                        <div style="text-align:center; margin:10px 0;">
-                            <i>D = k<sub>b</sub>E<sub>b</sub>I + k<sub>s</sub>E<sub>s</sub>I<sub>s</sub></i><br>
-                            = ${res.kb.toFixed(3)} &times; ${(m.Eb).toFixed(0)} &times; ${b} &times; ${h}<sup>3</sup> / 12 + 0,7 &times; 200000 &times; ${res.Is_x.toFixed(0)}<br>
-                            = <b>${(res.Dx/1e9).toFixed(1)} &times; 10<sup>9</sup> (Nmm<sup>2</sup>)</b>
-                        </div>
-                        
-                        - Lực dọc tới hạn quy ước:<br>
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>N<sub>cr</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">&pi;<sup>2</sup> <i>D</i></span>
-                                <span><i>L<sub>0</sub></i><sup>2</sup></span>
-                            </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">3,14<sup>2</sup> &times; ${(res.Dx/1e9).toFixed(1)} &times; 10<sup>9</sup></span>
-                                <span>${L0}<sup>2</sup></span>
-                            </span> = <b>${(res.Ncr_x / 1000).toFixed(1)} (kN)</b>
-                        </div>
-
-                        - Hệ số ảnh hưởng uốn dọc:<br>
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>&eta;</i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">1</span>
-                                <span>1 - <span style="font-size: 0.8em; vertical-align: middle;"><i>N / N<sub>cr</sub></i></span></span>
-                            </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">1</span>
-                                <span>1 - <span style="font-size: 0.8em; vertical-align: middle;">${res.N_kn} / ${(res.Ncr_x / 1000).toFixed(1)}</span></span>
-                            </span> = <b>${res.eta_x.toFixed(2)}</b>
-                        </div>
-
-                        - <i>&alpha;<sub>n</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>N</i></span>
-                                <span><i>R<sub>b</sub> b h<sub>0</sub></i></span>
-                            </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.N_kn} &times; 1000</span>
-                                <span>${m.Rb} &times; ${b} &times; ${h0}</span>
-                            </span> = <b>${res.alpha_n.toFixed(3)} > &xi;<sub>R</sub> = ${res.xi_R.toFixed(3)} &rarr; trường hợp cột chịu nén lệch tâm bé.</b><br>
-                        
-                        - Tính toán diện tích cốt thép theo các bước sau:<br>
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>&xi;<sub>1</sub></i> = min(<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>&alpha;<sub>n</sub> + &xi;<sub>R</sub></i></span>
-                                <span>2</span>
-                            </span>; 1) = min(<span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.alpha_n.toFixed(3)} + ${res.xi_R.toFixed(3)}</span>
-                                <span>2</span>
-                            </span>; 1) = <b>${res.xi_1.toFixed(3)}</b>
-                        </div>
-
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>&alpha;<sub>m1</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>N(&eta;e<sub>0</sub> + 0,5z<sub>a</sub>)</i></span>
-                                <span><i>R<sub>b</sub> b h<sub>0</sub><sup>2</sup></i></span>
-                            </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.N_kn} &times; 10<sup>3</sup> (${res.eta_x.toFixed(2)} &times; ${res.e0_x.toFixed(1)} + 0,5 &times; ${res.za})</span>
-                                <span>${m.Rb} &times; ${b} &times; ${h0}<sup>2</sup></span>
-                            </span> = <b>${res.alpha_m1.toFixed(3)}</b>
-                        </div>
-
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>&alpha;<sub>s1</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>&alpha;<sub>m1</sub> - &xi;<sub>1</sub>(1 - 0,5&xi;<sub>1</sub>)</i></span>
-                                <span>1 - <i>&delta;</i></span>
-                            </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.alpha_m1.toFixed(3)} - ${res.xi_1.toFixed(3)}(1 - 0,5 &times; ${res.xi_1.toFixed(3)})</span>
-                                <span>1 - ${res.d_ratio.toFixed(3)}</span>
-                            </span> = <b>${res.alpha_s1.toFixed(3)}</b>
-                        </div>
-
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>&xi;</i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>&alpha;<sub>n</sub>(1 - &xi;<sub>R</sub>) + 2&alpha;<sub>s1</sub>&xi;<sub>R</sub></i></span>
-                                <span>1 - <i>&xi;<sub>R</sub> + 2&alpha;<sub>s1</sub></i></span>
-                            </span> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.alpha_n.toFixed(3)}(1 - ${res.xi_R.toFixed(3)}) + 2 &times; ${res.alpha_s1.toFixed(3)} &times; ${res.xi_R.toFixed(3)}</span>
-                                <span>1 - ${res.xi_R.toFixed(3)} + 2 &times; ${res.alpha_s1.toFixed(3)}</span>
-                            </span> = <b>${res.xi_final.toFixed(3)}</b>
-                        </div>
-
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>A<sub>s,cal</sub> = A'<sub>s,cal</sub></i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>R<sub>b</sub> b h<sub>0</sub></i></span>
-                                <span><i>R<sub>s</sub></i></span>
-                            </span> &times; <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;"><i>&alpha;<sub>m1</sub> - &xi;(1 - 0,5&xi;)</i></span>
-                                <span>1 - <i>&delta;</i></span>
-                            </span><br>
-                            = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${m.Rb} &times; ${b} &times; ${h0}</span>
-                                <span>${m.Rs}</span>
-                            </span> &times; <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.alpha_m1.toFixed(3)} - ${res.xi_final.toFixed(3)}(1 - 0,5 &times; ${res.xi_final.toFixed(3)})</span>
-                                <span>1 - ${res.d_ratio.toFixed(3)}</span>
-                            </span> = <b>${res.As_req.toFixed(1)} (mm<sup>2</sup>)</b>
-                        </div>
-
-                        <div style="text-align:center; margin:15px 0;">
-                            <i>&mu;</i> = <span style="display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 5px;">
-                                <span style="border-bottom:1px solid #000; padding:0 3px;">${res.As_req.toFixed(1)}</span>
-                                <span>${b} &times; ${h0}</span>
-                            </span> &times; 100% = <b>${res.mu.toFixed(2)}%</b>
-                        </div>
-
-                        <div style="margin:10px 0;">
-                            <i>&mu;<sub>t</sub> = 2&mu; = ${res.mu_t_calc.toFixed(2)}% > 2&mu;<sub>min</sub> = ${(2*res.sum_mu*100).toFixed(1)}% &rarr; thỏa mãn.</i>
-                        </div>
-                        <div style="margin:10px 0;">
-                            - Giá trị <i>&mu;<sub>t</sub></i> tính toán xấp xỉ với <i>&mu;<sub>t</sub></i> giả thiết (${res.mu_t_calc.toFixed(2)}% &approx; ${(res.mu_t*100).toFixed(2)}%) &rarr; thỏa mãn.
-                        </div>
+                    <div style="margin-top:20px; font-weight:bold; border-top: 1pt solid #000; padding-top: 10px;">
+                        &rArr; CHỐT THÉP CỘT: ${textChon} (${asChon.toFixed(1)} mm²)
                     </div>
-
                     </div>
                 </div><br style="clear: both;" />`;
                     document.getElementById('report-paper').insertAdjacentHTML('beforeend', html);
